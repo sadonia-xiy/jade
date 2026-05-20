@@ -268,6 +268,58 @@
         .action-btn.primary { background: var(--accent); color: white; }
         .action-btn.secondary { background: var(--neutral); color: white; }
 
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            justify-content: flex-end;
+        }
+
+        .card-action-btn {
+            font-size: 12px;
+            color: var(--muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .card-action-btn:hover { background: var(--bg); color: var(--text); }
+        .card-action-btn.del:hover { color: #c0392b; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            z-index: 200;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border-radius: 20px 20px 0 0;
+            padding: 24px 20px 36px;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
         /* Empty / spinner */
         .empty-state {
             text-align: center;
@@ -388,6 +440,17 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
+    <div class="modal">
+        <div class="modal-title">编辑念头</div>
+        <textarea id="edit-textarea" style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:15px;line-height:1.65;font-family:inherit;outline:none;resize:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+        <div class="modal-actions">
+            <button class="action-btn primary" style="flex:1;margin:0" onclick="saveEdit()">保存</button>
+            <button class="action-btn secondary" style="flex:1;margin:0" onclick="closeEditModal()">取消</button>
+        </div>
+    </div>
+</div>
 
 <script>
 let currentFilter = 'all';
@@ -530,7 +593,62 @@ function renderCard(t) {
                 </div>
                 <span class="thought-time">${time}</span>
             </div>
+            <div class="card-actions">
+                <button class="card-action-btn" onclick="openEditModal('${t.id}')">编辑</button>
+                <button class="card-action-btn del" onclick="deleteThought('${t.id}')">删除</button>
+            </div>
         </div>`;
+}
+
+let editingId = null;
+
+function openEditModal(id) {
+    editingId = id;
+    const t = getThoughts().find(x => x.id === id);
+    if (!t) return;
+    document.getElementById('edit-textarea').value = t.content;
+    document.getElementById('edit-modal').classList.add('show');
+    setTimeout(() => document.getElementById('edit-textarea').focus(), 100);
+}
+
+function closeEditModal(e) {
+    if (e && e.target !== document.getElementById('edit-modal')) return;
+    document.getElementById('edit-modal').classList.remove('show');
+    editingId = null;
+}
+
+async function saveEdit() {
+    if (!editingId) return;
+    const newContent = document.getElementById('edit-textarea').value.trim();
+    if (!newContent) return;
+
+    const thoughts = getThoughts();
+    const idx = thoughts.findIndex(x => x.id === editingId);
+    if (idx === -1) return;
+
+    thoughts[idx].content = newContent;
+    document.getElementById('edit-modal').classList.remove('show');
+
+    try {
+        const result = await classifyThought(newContent);
+        thoughts[idx].mood = result.mood;
+        thoughts[idx].topics = result.topics || [];
+    } catch (e) {
+        // keep old tags if reclassify fails
+    }
+
+    localStorage.setItem('thoughts', JSON.stringify(thoughts));
+    editingId = null;
+    renderArchive();
+    toast('已更新');
+}
+
+function deleteThought(id) {
+    if (!confirm('删除这条念头？')) return;
+    const thoughts = getThoughts().filter(x => x.id !== id);
+    localStorage.setItem('thoughts', JSON.stringify(thoughts));
+    renderArchive();
+    toast('已删除');
 }
 
 function formatDateLabel(d) {
