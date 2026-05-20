@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>闪念</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#F7F3EE">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="闪念">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --bg: #F7F3EE;
+            --surface: #FFFFFF;
+            --border: #E8E2D9;
+            --text: #2D2926;
+            --muted: #8A857E;
+            --accent: #C4956A;
+            --positive: #7DAF9C;
+            --negative: #9B8EC4;
+            --neutral: #B0AAA3;
+            --mixed: #C4A56A;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* Nav */
+        .nav {
+            display: flex;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 14px 8px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            color: var(--muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .nav-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* Views */
+        .view { display: none; padding: 20px; }
+        .view.active { display: block; }
+
+        /* Write */
+        .write-date {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 160px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface);
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--text);
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus { border-color: var(--accent); }
+        textarea::placeholder { color: #C5BFB8; }
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 14px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .submit-btn:active { opacity: 0.8; }
+        .submit-btn:disabled { opacity: 0.5; }
+
+        .status-msg {
+            text-align: center;
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 12px;
+            min-height: 20px;
+        }
+
+        /* Archive */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+        .filter-bar::-webkit-scrollbar { display: none; }
+
+        .filter-chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            font-size: 13px;
+            color: var(--muted);
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-chip.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .date-group { margin-bottom: 20px; }
+
+        .date-label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            padding: 0 2px;
+        }
+
+        .thought-card {
+            background: var(--surface);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--neutral);
+        }
+
+        .thought-card.positive { border-left-color: var(--positive); }
+        .thought-card.negative { border-left-color: var(--negative); }
+        .thought-card.mixed { border-left-color: var(--mixed); }
+
+        .thought-content {
+            font-size: 15px;
+            line-height: 1.65;
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+
+        .thought-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .thought-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+        .tag {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--muted);
+        }
+
+        .mood-emoji { font-size: 16px; line-height: 1; }
+        .thought-time { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+
+        /* Clusters */
+        .cluster-action-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--surface);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--muted);
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+        .cluster-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        .cluster-group { margin-bottom: 28px; }
+
+        .cluster-theme {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .cluster-journey {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        /* Settings */
+        .settings-group { margin-bottom: 24px; }
+
+        .settings-label {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            font-size: 14px;
+            color: var(--text);
+            outline: none;
+            font-family: monospace;
+        }
+        .settings-input:focus { border-color: var(--accent); }
+
+        .settings-note {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+            line-height: 1.6;
+        }
+
+        .action-btn {
+            padding: 11px 22px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+            margin-right: 8px;
+        }
+
+        .action-btn.primary { background: var(--accent); color: white; }
+        .action-btn.secondary { background: var(--neutral); color: white; }
+
+        /* Empty / spinner */
+        .empty-state {
+            text-align: center;
+            color: var(--muted);
+            padding: 60px 20px;
+            font-size: 14px;
+            line-height: 2;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 999;
+        }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<nav class="nav">
+    <button class="nav-btn active" data-view="write" onclick="showView('write', this)">写</button>
+    <button class="nav-btn" data-view="archive" onclick="showView('archive', this)">看</button>
+    <button class="nav-btn" data-view="clusters" onclick="showView('clusters', this)">连</button>
+    <button class="nav-btn" data-view="settings" onclick="showView('settings', this)">设置</button>
+</nav>
+
+<!-- 写 -->
+<div id="view-write" class="view active">
+    <div class="write-date" id="write-date"></div>
+    <textarea id="thought-input" placeholder="现在脑子里飘着什么…"></textarea>
+    <button class="submit-btn" id="submit-btn" onclick="submitThought()">放下</button>
+    <div class="status-msg" id="status-msg"></div>
+</div>
+
+<!-- 看 -->
+<div id="view-archive" class="view">
+    <div class="filter-bar">
+        <div class="filter-chip active" onclick="setFilter('all', this)">全部</div>
+        <div class="filter-chip" onclick="setFilter('positive', this)">😊 好的</div>
+        <div class="filter-chip" onclick="setFilter('negative', this)">🌧 难的</div>
+        <div class="filter-chip" onclick="setFilter('neutral', this)">☁️ 平的</div>
+        <div class="filter-chip" onclick="setFilter('mixed', this)">🌈 复杂</div>
+    </div>
+    <div id="archive-list"></div>
+</div>
+
+<!-- 连 -->
+<div id="view-clusters" class="view">
+    <button class="cluster-action-btn" id="cluster-btn" onclick="findClusters()">
+        ✦ 让 AI 找找相关的念头
+    </button>
+    <div id="cluster-list"></div>
+</div>
+
+<!-- 设置 -->
+<div id="view-settings" class="view">
+    <div class="settings-group">
+        <div class="settings-label">API Key</div>
+        <input type="password" class="settings-input" id="api-key-input" placeholder="sk-...">
+        <div class="settings-note">Key 只存在你手机本地，不会上传任何地方。</div>
+    </div>
+
+    <div class="settings-group">
+        <div class="settings-label">API 地址（使用中转站时修改，否则留空）</div>
+        <input type="text" class="settings-input" id="api-base-input" placeholder="https://api.deepseek.com">
+    </div>
+
+    <div class="settings-group">
+        <div class="settings-label">模型名称（留空使用默认）</div>
+        <input type="text" class="settings-input" id="model-input" placeholder="deepseek-chat">
+    </div>
+
+    <button class="action-btn primary" onclick="saveSettings()">保存设置</button>
+
+    <div class="settings-group" style="margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--border);">
+        <div class="settings-label">数据备份</div>
+        <button class="action-btn secondary" onclick="exportData()">导出全部念头</button>
+    </div>
+
+    <div id="settings-count" style="font-size:12px;color:var(--muted);margin-top:16px;"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentFilter = 'all';
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+    updateDate();
+    loadSettingsUI();
+    renderArchive();
+    updateCount();
+});
+
+function updateDate() {
+    const d = new Date();
+    const days = ['日','一','二','三','四','五','六'];
+    document.getElementById('write-date').textContent =
+        `${d.getMonth()+1}月${d.getDate()}日 周${days[d.getDay()]}`;
+}
+
+// ── Nav ──
+function showView(name, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'archive') renderArchive();
+    if (name === 'settings') { loadSettingsUI(); updateCount(); }
+}
+
+// ── Write ──
+async function submitThought() {
+    const input = document.getElementById('thought-input');
+    const content = input.value.trim();
+    if (!content) return;
+
+    const apiKey = localStorage.getItem('sk_key');
+    if (!apiKey) {
+        toast('请先在设置里填入 API Key');
+        return;
+    }
+
+    const btn = document.getElementById('submit-btn');
+    setSubmitting(true);
+
+    const thought = {
+        id: Date.now().toString(),
+        content,
+        timestamp: new Date().toISOString(),
+        mood: { label: '未知', valence: 'neutral', emoji: '○' },
+        topics: []
+    };
+
+    try {
+        const result = await classifyThought(content);
+        thought.mood = result.mood;
+        thought.topics = result.topics || [];
+        saveThought(thought);
+        input.value = '';
+        toast(thought.mood.emoji + ' ' + thought.mood.label);
+    } catch (e) {
+        console.error(e);
+        saveThought(thought);
+        input.value = '';
+        toast('已保存（AI 分析失败）');
+    }
+
+    setSubmitting(false);
+}
+
+function setSubmitting(on) {
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = on;
+    btn.innerHTML = on
+        ? '<span class="spinner"></span> 感知中…'
+        : '放下';
+}
+
+// ── Storage ──
+function getThoughts() {
+    return JSON.parse(localStorage.getItem('thoughts') || '[]');
+}
+
+function saveThought(t) {
+    const all = getThoughts();
+    all.unshift(t);
+    localStorage.setItem('thoughts', JSON.stringify(all));
+}
+
+// ── Archive ──
+function setFilter(filter, el) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    renderArchive();
+}
+
+function renderArchive() {
+    const list = document.getElementById('archive-list');
+    let thoughts = getThoughts();
+
+    if (currentFilter !== 'all') {
+        thoughts = thoughts.filter(t => t.mood.valence === currentFilter);
+    }
+
+    if (!thoughts.length) {
+        list.innerHTML = '<div class="empty-state">还没有念头<br>去写一个吧</div>';
+        return;
+    }
+
+    const groups = {};
+    thoughts.forEach(t => {
+        const d = new Date(t.timestamp);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!groups[key]) groups[key] = { label: formatDateLabel(d), items: [] };
+        groups[key].items.push(t);
+    });
+
+    list.innerHTML = Object.entries(groups)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .map(([, g]) => `
+            <div class="date-group">
+                <div class="date-label">${g.label}</div>
+                ${g.items.map(renderCard).join('')}
+            </div>
+        `).join('');
+}
+
+function renderCard(t) {
+    const d = new Date(t.timestamp);
+    const time = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const topics = (t.topics || []).map(tp => `<span class="tag">${tp}</span>`).join('');
+    return `
+        <div class="thought-card ${t.mood.valence || 'neutral'}">
+            <div class="thought-content">${escHtml(t.content)}</div>
+            <div class="thought-meta">
+                <div class="thought-tags">
+                    <span class="mood-emoji">${t.mood.emoji}</span>
+                    <span class="tag">${t.mood.label}</span>
+                    ${topics}
+                </div>
+                <span class="thought-time">${time}</span>
+            </div>
+        </div>`;
+}
+
+function formatDateLabel(d) {
+    const today = new Date();
+    const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+    if (sameDay(d, today)) return '今天';
+    if (sameDay(d, yesterday)) return '昨天';
+    return `${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+function sameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() &&
+           a.getMonth() === b.getMonth() &&
+           a.getDate() === b.getDate();
+}
+
+// ── AI ──
+async function classifyThought(content) {
+    const { apiKey, apiBase, model } = getApiConfig();
+    const prompt = `你是一个温柔的情绪感知助手。分析这条"闪念"（随手记的念头、感受或情绪片段），不评判，不建议，只是如实感知。
+
+只返回 JSON，不要其他文字：
+{
+  "mood": {
+    "label": "两三个字描述当下心情，如：轻松、烦躁、惆怅、期待、平静、迷茫、兴奋",
+    "valence": "positive 或 negative 或 neutral 或 mixed",
+    "emoji": "一个最贴切的 emoji"
+  },
+  "topics": ["主题1", "主题2"]
+}
+topics 提炼 1~3 个核心主题，如：某段关系、工作、身体感受、某个人、创意、未来。
+
+闪念：${content}`;
+
+    const res = await fetch(`${apiBase}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            response_format: { type: 'json_object' },
+            temperature: 0.3
+        })
+    });
+
+    if (!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+    return JSON.parse(data.choices[0].message.content);
+}
+
+// ── Clusters ──
+async function findClusters() {
+    const thoughts = getThoughts();
+    if (thoughts.length < 3) {
+        document.getElementById('cluster-list').innerHTML =
+            '<div class="empty-state">至少需要 3 条念头才能找关联</div>';
+        return;
+    }
+
+    const btn = document.getElementById('cluster-btn');
+    btn.disabled = true;
+    btn.textContent = '分析中…';
+
+    const sample = thoughts.slice(0, 40);
+    const thoughtsText = sample.map((t, i) =>
+        `[${i}] ${new Date(t.timestamp).toLocaleDateString('zh')} | ${t.mood.label} | ${t.content.slice(0, 100)}`
+    ).join('\n');
+
+    const { apiKey, apiBase, model } = getApiConfig();
+    const prompt = `分析下面这些"闪念"，找出哪些在讲同一件事或同一个主题。
+
+只返回 JSON，不要其他文字：
+{
+  "clusters": [
+    {
+      "theme": "主题名称（5字以内）",
+      "indices": [编号数组],
+      "mood_journey": "一句话描述这件事上的情绪变化轨迹"
+    }
+  ]
+}
+
+只包含有 2 条及以上的主题组。indices 用念头前面的编号。
+
+念头列表：
+${thoughtsText}`;
+
+    try {
+        const res = await fetch(`${apiBase}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model,
+                messages: [{ role: 'user', content: prompt }],
+                response_format: { type: 'json_object' },
+                temperature: 0.3
+            })
+        });
+        const data = await res.json();
+        const result = JSON.parse(data.choices[0].message.content);
+        renderClusters(result.clusters || [], sample);
+    } catch (e) {
+        console.error(e);
+        document.getElementById('cluster-list').innerHTML =
+            '<div class="empty-state">分析失败，请检查 API Key 和网络</div>';
+    }
+
+    btn.disabled = false;
+    btn.textContent = '✦ 重新分析';
+}
+
+function renderClusters(clusters, thoughts) {
+    const list = document.getElementById('cluster-list');
+    if (!clusters.length) {
+        list.innerHTML = '<div class="empty-state">没有找到明显的关联<br>多写一些念头再来试试</div>';
+        return;
+    }
+    list.innerHTML = clusters.map(c => `
+        <div class="cluster-group">
+            <div class="cluster-theme">◆ ${c.theme}</div>
+            ${c.mood_journey ? `<div class="cluster-journey">${c.mood_journey}</div>` : ''}
+            ${(c.indices || []).filter(i => thoughts[i]).map(i => renderCard(thoughts[i])).join('')}
+        </div>
+    `).join('');
+}
+
+// ── Settings ──
+function getApiConfig() {
+    return {
+        apiKey: localStorage.getItem('sk_key') || '',
+        apiBase: localStorage.getItem('api_base') || 'https://api.deepseek.com',
+        model: localStorage.getItem('model') || 'deepseek-chat'
+    };
+}
+
+function loadSettingsUI() {
+    const { apiKey, apiBase, model } = getApiConfig();
+    document.getElementById('api-key-input').value = apiKey;
+    document.getElementById('api-base-input').value =
+        apiBase === 'https://api.deepseek.com' ? '' : apiBase;
+    document.getElementById('model-input').value =
+        model === 'deepseek-chat' ? '' : model;
+}
+
+function saveSettings() {
+    const key = document.getElementById('api-key-input').value.trim();
+    const base = document.getElementById('api-base-input').value.trim();
+    const model = document.getElementById('model-input').value.trim();
+
+    if (key) localStorage.setItem('sk_key', key);
+    else localStorage.removeItem('sk_key');
+
+    localStorage.setItem('api_base', base || 'https://api.deepseek.com');
+    localStorage.setItem('model', model || 'deepseek-chat');
+
+    toast('设置已保存');
+}
+
+function updateCount() {
+    const n = getThoughts().length;
+    const el = document.getElementById('settings-count');
+    if (el) el.textContent = `共 ${n} 条念头`;
+}
+
+// ── Export ──
+function exportData() {
+    const thoughts = getThoughts();
+    const json = JSON.stringify(thoughts, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `闪念_${new Date().toLocaleDateString('zh')}.json`;
+    a.click();
+    toast('已导出');
+}
+
+// ── Utils ──
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function escHtml(s) {
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+}
+</script>
+</body>
+</html>
