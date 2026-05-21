@@ -405,8 +405,9 @@
     </div>
 
     <div class="settings-group">
-        <div class="settings-label">API 地址（使用中转站时修改，否则留空）</div>
-        <input type="text" class="settings-input" id="api-base-input" placeholder="https://api.deepseek.com">
+        <div class="settings-label">API 地址（填到 /v1 为止，留空使用 DeepSeek 官方）</div>
+        <input type="text" class="settings-input" id="api-base-input" placeholder="https://api.deepseek.com/v1/v1">
+        <div class="settings-note">示例：https://你的中转站.com/v1</div>
     </div>
 
     <div class="settings-group">
@@ -427,6 +428,7 @@
             <option value="__custom__">自定义…</option>
         </select>
         <input type="text" class="settings-input" id="model-custom" placeholder="输入模型名称" style="margin-top:8px;display:none;">
+        <button class="action-btn secondary" id="fetch-models-btn" onclick="fetchModels()" style="margin-top:8px;width:100%;">从接口获取模型列表</button>
     </div>
 
     <button class="action-btn primary" onclick="saveSettings()">保存设置</button>
@@ -785,9 +787,47 @@ function renderClusters(clusters, thoughts) {
 function getApiConfig() {
     return {
         apiKey: localStorage.getItem('sk_key') || '',
-        apiBase: localStorage.getItem('api_base') || 'https://api.deepseek.com',
+        apiBase: localStorage.getItem('api_base') || 'https://api.deepseek.com/v1',
         model: localStorage.getItem('model') || 'deepseek-chat'
     };
+}
+
+async function fetchModels() {
+    const apiKey = document.getElementById('api-key-input').value.trim() || localStorage.getItem('sk_key');
+    const base = document.getElementById('api-base-input').value.trim() || 'https://api.deepseek.com/v1';
+
+    if (!apiKey) { toast('请先填入 API Key'); return; }
+
+    const btn = document.getElementById('fetch-models-btn');
+    btn.disabled = true;
+    btn.textContent = '获取中…';
+
+    try {
+        const res = await fetch(`${base}/models`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        const models = (data.data || []).map(m => m.id).sort();
+
+        const sel = document.getElementById('model-select');
+        const currentVal = sel.value === '__custom__'
+            ? document.getElementById('model-custom').value
+            : sel.value;
+
+        sel.innerHTML = models.map(id =>
+            `<option value="${id}"${id === currentVal ? ' selected' : ''}>${id}</option>`
+        ).join('') + '<option value="__custom__">自定义…</option>';
+
+        if (!models.includes(currentVal)) sel.value = models[0] || '__custom__';
+        onModelSelect();
+        toast(`获取到 ${models.length} 个模型`);
+    } catch (e) {
+        toast('获取失败，检查 Key 和地址');
+    }
+
+    btn.disabled = false;
+    btn.textContent = '从接口获取模型列表';
 }
 
 function onModelSelect() {
@@ -800,7 +840,7 @@ function loadSettingsUI() {
     const { apiKey, apiBase, model } = getApiConfig();
     document.getElementById('api-key-input').value = apiKey;
     document.getElementById('api-base-input').value =
-        apiBase === 'https://api.deepseek.com' ? '' : apiBase;
+        apiBase === 'https://api.deepseek.com/v1' ? '' : apiBase;
 
     const sel = document.getElementById('model-select');
     const custom = document.getElementById('model-custom');
@@ -826,7 +866,7 @@ function saveSettings() {
     if (key) localStorage.setItem('sk_key', key);
     else localStorage.removeItem('sk_key');
 
-    localStorage.setItem('api_base', base || 'https://api.deepseek.com');
+    localStorage.setItem('api_base', base || 'https://api.deepseek.com/v1');
     localStorage.setItem('model', model || 'deepseek-chat');
 
     toast('设置已保存');
