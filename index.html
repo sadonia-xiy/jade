@@ -789,7 +789,7 @@ async function findClusters() {
     btn.disabled = true;
     btn.textContent = '分析中…';
 
-    const sample = thoughts.slice(0, 40);
+    const sample = thoughts.slice(0, 40).reverse();
     const thoughtsText = sample.map((t, i) =>
         `[${i}] ${new Date(t.timestamp).toLocaleDateString('zh')} | ${t.mood.label} | ${t.content.slice(0, 100)}`
     ).join('\n');
