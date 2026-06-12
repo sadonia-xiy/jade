@@ -114,13 +114,21 @@
             font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
         }
         body.font-nano {
-            font-family: 'NanoOldSong-A', 'Source Han Serif SC', 'Songti SC', serif;
+            font-family: 'Huiwen-mincho', 'Source Han Serif SC', 'Songti SC', serif;
         }
         body.font-clear {
             font-family: 'Clear Han Serif', 'Source Han Serif SC', 'Songti SC', serif;
         }
+        body.font-songti {
+            font-family: 'Noto Serif CJK SC', 'Source Han Serif SC', 'Songti SC', serif;
+        }
         body.font-wenkai {
             font-family: 'LXGW WenKai', 'Source Han Serif SC', 'Songti SC', serif;
+        }
+
+        /* 让 textarea / button / input / select 都继承全局字体 */
+        button, input, textarea, select {
+            font-family: inherit;
         }
 
         body {
@@ -726,7 +734,7 @@
             </button>
             <button class="bg-chip" onclick="document.getElementById('bg-upload').click()">
                 <span class="bg-preview bg-prev-custom">+</span>
-                <span>自传</span>
+                <span>自定义</span>
             </button>
             <input type="file" id="bg-upload" accept="image/*" style="display:none" onchange="onBgUpload(event)">
         </div>
@@ -736,13 +744,15 @@
         <div class="settings-label">字体</div>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
             <button class="font-chip" data-font="default" onclick="applyFont('default')" style="font-family:-apple-system,'PingFang SC',sans-serif">现代</button>
-            <button class="font-chip" data-font="nano" onclick="applyFont('nano')" style="font-family:'NanoOldSong-A',serif">朴方明朝</button>
+            <button class="font-chip" data-font="nano" onclick="applyFont('nano')" style="font-family:'Huiwen-mincho',serif">汇文明朝</button>
             <button class="font-chip" data-font="clear" onclick="applyFont('clear')" style="font-family:'Clear Han Serif',serif">清松手写</button>
+            <button class="font-chip" data-font="songti" onclick="applyFont('songti')" style="font-family:'Noto Serif CJK SC',serif">思源宋体</button>
             <button class="font-chip" data-font="wenkai" onclick="applyFont('wenkai')" style="font-family:'LXGW WenKai',serif">霞鹜文楷</button>
         </div>
         <div class="settings-note" style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">
-            朴方明朝 = 细瘦优雅<br>
+            汇文明朝 = 细瘦优雅（海边油画风）<br>
             清松手写 = 书法松弛感<br>
+            思源宋体 = 古典印刷感<br>
             霞鹜文楷 = 日记本手写感
         </div>
     </div>
@@ -827,7 +837,7 @@ let currentFilter = 'all';
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
     applyTheme();
-    applyBackground(localStorage.getItem('bg') || 'mist', true);
+    applyBackground(localStorage.getItem('bg') || 'rain', true);
     applyFont(localStorage.getItem('font') || 'default', true);
     updateDate();
     loadSettingsUI();
@@ -909,16 +919,17 @@ function onBgUpload(e) {
 
 // ============== 字体切换 ==============
 const FONT_URLS = {
-    nano:   'https://fontsapi.zeoseven.com/256/main/result.css',  // 朴方明朝体 A
-    clear:  'https://fontsapi.zeoseven.com/79/main/result.css',   // Clear Han Serif
-    wenkai: 'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css'
+    nano:    'https://fontsapi.zeoseven.com/256/main/result.css',  // Huiwen-mincho 汇文明朝体
+    clear:   'https://fontsapi.zeoseven.com/79/main/result.css',   // Clear Han Serif
+    songti:  'https://fontsapi.zeoseven.com/285/main/result.css',  // Noto Serif CJK 思源宋体
+    wenkai:  'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css'
 };
 const loadedFonts = new Set();
 
 function applyFont(name, silent) {
     const body = document.body;
     // 清掉所有 font-* 类（保留其他）
-    ['default','nano','clear','wenkai'].forEach(n => body.classList.remove('font-' + n));
+    ['default','nano','clear','songti','wenkai'].forEach(n => body.classList.remove('font-' + n));
 
     if (name !== 'default') {
         body.classList.add('font-' + name);
