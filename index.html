@@ -86,6 +86,18 @@
             --accent: #8A5A2B;
         }
 
+        /* 真实照片底图：雨景 */
+        body.bg-rain {
+            --bg-img: url('bg/rain.jpg');
+            --text: #F4F4EE;
+            --muted: rgba(244, 244, 238, 0.7);
+            --accent: #C8DBC8;
+            --surface: rgba(255, 255, 255, 0.18);
+            --surface-strong: rgba(255, 255, 255, 0.28);
+            --border: rgba(255, 255, 255, 0.32);
+            --bg-soft: rgba(255, 255, 255, 0.1);
+        }
+
         /* 夜间 = 已经在 bg-night 类里覆盖；body.dark 兜底通用变暗 */
         body.dark:not(.bg-night) {
             --surface: rgba(40, 50, 47, 0.55);
@@ -163,6 +175,7 @@
         .bg-prev-ocean { background: linear-gradient(160deg, #C5D8E2, #7A9FB8); }
         .bg-prev-night { background: linear-gradient(160deg, #2C3E4A, #1A2730); }
         .bg-prev-warmth { background: linear-gradient(160deg, #F5E6CF, #D9B58C); }
+        .bg-prev-rain { background-image: url('bg/rain.jpg'); background-size: cover; background-position: center; }
         .bg-prev-custom {
             background: rgba(255,255,255,0.4);
             border: 1px dashed var(--border);
@@ -700,6 +713,10 @@
             <button class="bg-chip" data-bg="warmth" onclick="applyBackground('warmth')">
                 <span class="bg-preview bg-prev-warmth"></span>
                 <span>暖光</span>
+            </button>
+            <button class="bg-chip" data-bg="rain" onclick="applyBackground('rain')">
+                <span class="bg-preview bg-prev-rain"></span>
+                <span>雨绿</span>
             </button>
             <button class="bg-chip" onclick="document.getElementById('bg-upload').click()">
                 <span class="bg-preview bg-prev-custom">+</span>
