@@ -13,40 +13,205 @@
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         :root {
-            --bg: #F7F3EE;
-            --surface: #FFFFFF;
-            --border: #E8E2D9;
-            --text: #2D2926;
-            --muted: #8A857E;
-            --accent: #C4956A;
-            --positive: #7DAF9C;
-            --negative: #9B8EC4;
-            --neutral: #B0AAA3;
-            --mixed: #C4A56A;
-            --bg-soft: var(--bg-soft);
+            /* 半透明卡片色（毛玻璃用） */
+            --surface: rgba(255, 255, 255, 0.55);
+            --surface-strong: rgba(255, 255, 255, 0.75);
+            --border: rgba(255, 255, 255, 0.55);
+            --bg: rgba(248, 250, 247, 0.45);
+            --bg-soft: rgba(255, 255, 255, 0.35);
+
+            /* 文字 / 强调 */
+            --text: #2A3A36;
+            --muted: rgba(60, 75, 70, 0.65);
+            --accent: #3A6356;
+
+            /* 心情色 */
+            --positive: #5EA88C;
+            --negative: #8B7DB0;
+            --neutral: #8A9591;
+            --mixed: #B89B58;
+
+            /* 默认底图：晨雾 */
+            --bg-img:
+                radial-gradient(at 20% 0%, rgba(220, 232, 224, 0.95) 0%, transparent 55%),
+                radial-gradient(at 80% 90%, rgba(206, 222, 213, 0.9) 0%, transparent 55%),
+                linear-gradient(135deg, #F2F6F2 0%, #DDE7DF 100%);
         }
 
-        body.dark {
-            --bg: #1A1816;
-            --surface: #252220;
-            --border: #3A3633;
-            --text: #E8E2D9;
-            --muted: #8A857E;
-            --accent: #D4A878;
-            --positive: #8FC5B0;
-            --negative: #B0A3D8;
-            --neutral: #B0AAA3;
-            --mixed: #D4B57A;
-            --bg-soft: #2A2724;
+        /* ===== 5 种内置底图 ===== */
+        body.bg-mist {
+            --bg-img:
+                radial-gradient(at 20% 0%, rgba(220, 232, 224, 0.95) 0%, transparent 55%),
+                radial-gradient(at 80% 90%, rgba(206, 222, 213, 0.9) 0%, transparent 55%),
+                linear-gradient(135deg, #F2F6F2 0%, #DDE7DF 100%);
+        }
+        body.bg-forest {
+            --bg-img:
+                radial-gradient(at 30% 10%, rgba(110, 145, 122, 0.55) 0%, transparent 60%),
+                radial-gradient(at 70% 80%, rgba(75, 110, 88, 0.5) 0%, transparent 55%),
+                linear-gradient(160deg, #93B6A0 0%, #5C8270 100%);
+            --text: #1F2E26;
+            --muted: rgba(35, 55, 45, 0.7);
+            --accent: #2A5045;
+        }
+        body.bg-ocean {
+            --bg-img:
+                radial-gradient(at 25% 15%, rgba(170, 200, 215, 0.85) 0%, transparent 55%),
+                radial-gradient(at 75% 85%, rgba(120, 165, 195, 0.7) 0%, transparent 55%),
+                linear-gradient(160deg, #C5D8E2 0%, #7A9FB8 100%);
+            --text: #1F3744;
+            --muted: rgba(40, 60, 75, 0.65);
+            --accent: #2A5670;
+        }
+        body.bg-night {
+            --bg-img:
+                radial-gradient(at 25% 15%, rgba(50, 70, 90, 0.85) 0%, transparent 55%),
+                radial-gradient(at 75% 85%, rgba(30, 50, 65, 0.95) 0%, transparent 60%),
+                linear-gradient(160deg, #2C3E4A 0%, #1A2730 100%);
+            --text: #E8EDE6;
+            --muted: rgba(220, 230, 220, 0.55);
+            --accent: #B8D4C7;
+            --surface: rgba(255, 255, 255, 0.08);
+            --surface-strong: rgba(255, 255, 255, 0.14);
+            --border: rgba(255, 255, 255, 0.18);
+            --bg-soft: rgba(255, 255, 255, 0.05);
+        }
+        body.bg-warmth {
+            --bg-img:
+                radial-gradient(at 20% 10%, rgba(245, 220, 180, 0.85) 0%, transparent 55%),
+                radial-gradient(at 80% 90%, rgba(225, 180, 140, 0.7) 0%, transparent 55%),
+                linear-gradient(160deg, #F5E6CF 0%, #D9B58C 100%);
+            --text: #3D2D1A;
+            --muted: rgba(70, 50, 30, 0.6);
+            --accent: #8A5A2B;
+        }
+
+        /* 夜间 = 已经在 bg-night 类里覆盖；body.dark 兜底通用变暗 */
+        body.dark:not(.bg-night) {
+            --surface: rgba(40, 50, 47, 0.55);
+            --surface-strong: rgba(40, 50, 47, 0.7);
+            --border: rgba(255, 255, 255, 0.12);
+            --bg-soft: rgba(255, 255, 255, 0.05);
+            --text: #E0E6E3;
+            --muted: rgba(220, 230, 225, 0.55);
+            --accent: #B8D4C7;
+        }
+
+        /* 字体 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+        }
+        body.font-serif {
+            font-family: 'LXGW WenKai', 'Source Han Serif SC', 'Noto Serif SC', 'Songti SC', serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
-            background: var(--bg);
+            background-image: var(--bg-img);
+            background-attachment: fixed;
+            background-size: cover;
             color: var(--text);
             min-height: 100vh;
             max-width: 480px;
             margin: 0 auto;
+            transition: color 0.3s;
+        }
+
+        /* 用户上传底图 */
+        body.bg-custom {
+            background-image: var(--bg-custom-url, var(--bg-img));
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* ===== 背景选择器 ===== */
+        .bg-picker {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .bg-chip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 4px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text);
+            transition: border-color 0.2s, transform 0.15s;
+        }
+        .bg-chip.active {
+            border-color: var(--accent);
+            border-width: 2px;
+            transform: scale(1.02);
+        }
+        .bg-preview {
+            width: 100%;
+            aspect-ratio: 16/9;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(0,0,0,0.4);
+            font-size: 20px;
+        }
+        .bg-prev-mist { background: linear-gradient(135deg, #F2F6F2, #DDE7DF); }
+        .bg-prev-forest { background: linear-gradient(160deg, #93B6A0, #5C8270); }
+        .bg-prev-ocean { background: linear-gradient(160deg, #C5D8E2, #7A9FB8); }
+        .bg-prev-night { background: linear-gradient(160deg, #2C3E4A, #1A2730); }
+        .bg-prev-warmth { background: linear-gradient(160deg, #F5E6CF, #D9B58C); }
+        .bg-prev-custom {
+            background: rgba(255,255,255,0.4);
+            border: 1px dashed var(--border);
+            color: var(--muted);
+        }
+
+        .font-chip {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--text);
+            transition: border-color 0.2s;
+        }
+        .font-chip.active {
+            border-color: var(--accent);
+            border-width: 2px;
+            background: var(--surface-strong);
+        }
+
+        /* ===== 毛玻璃统一规则 ===== */
+        .nav,
+        textarea,
+        .thought-card,
+        .filter-chip,
+        .cluster-action-btn,
+        .cluster-group,
+        .settings-input,
+        .voice-btn,
+        .profile-item,
+        .modal,
+        .submit-btn,
+        .toast {
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+        }
+
+        /* 让所有边框变成玻璃感 */
+        .nav,
+        textarea,
+        .thought-card,
+        .settings-input,
+        .voice-btn,
+        .profile-item,
+        .modal {
+            border-color: var(--border);
         }
 
         /* Nav */
@@ -512,6 +677,46 @@
 <!-- 设置 -->
 <div id="view-settings" class="view">
 
+    <!-- 外观 -->
+    <div class="settings-group">
+        <div class="settings-label">背景</div>
+        <div class="bg-picker">
+            <button class="bg-chip" data-bg="mist" onclick="applyBackground('mist')">
+                <span class="bg-preview bg-prev-mist"></span>
+                <span>晨雾</span>
+            </button>
+            <button class="bg-chip" data-bg="forest" onclick="applyBackground('forest')">
+                <span class="bg-preview bg-prev-forest"></span>
+                <span>雨林</span>
+            </button>
+            <button class="bg-chip" data-bg="ocean" onclick="applyBackground('ocean')">
+                <span class="bg-preview bg-prev-ocean"></span>
+                <span>海面</span>
+            </button>
+            <button class="bg-chip" data-bg="night" onclick="applyBackground('night')">
+                <span class="bg-preview bg-prev-night"></span>
+                <span>夜空</span>
+            </button>
+            <button class="bg-chip" data-bg="warmth" onclick="applyBackground('warmth')">
+                <span class="bg-preview bg-prev-warmth"></span>
+                <span>暖光</span>
+            </button>
+            <button class="bg-chip" onclick="document.getElementById('bg-upload').click()">
+                <span class="bg-preview bg-prev-custom">+</span>
+                <span>自传</span>
+            </button>
+            <input type="file" id="bg-upload" accept="image/*" style="display:none" onchange="onBgUpload(event)">
+        </div>
+    </div>
+
+    <div class="settings-group">
+        <div class="settings-label">字体</div>
+        <div style="display:flex;gap:8px">
+            <button class="font-chip" data-font="default" onclick="applyFont('default')" style="font-family:-apple-system,'PingFang SC',sans-serif">现代</button>
+            <button class="font-chip" data-font="serif" onclick="applyFont('serif')" style="font-family:'LXGW WenKai','Songti SC',serif">衬线</button>
+        </div>
+    </div>
+
     <!-- 已保存配置 -->
     <div class="settings-group">
         <div class="settings-label">已保存的配置</div>
@@ -592,6 +797,8 @@ let currentFilter = 'all';
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
     applyTheme();
+    applyBackground(localStorage.getItem('bg') || 'mist', true);
+    applyFont(localStorage.getItem('font') || 'default', true);
     updateDate();
     loadSettingsUI();
     renderArchive();
@@ -612,6 +819,86 @@ function toggleTheme() {
     const next = current === 'dark' ? 'light' : 'dark';
     localStorage.setItem('theme', next);
     applyTheme();
+}
+
+// ============== 背景切换 ==============
+function applyBackground(name, silent) {
+    const body = document.body;
+    // 清掉所有 bg-* 类
+    [...body.classList].forEach(c => { if (c.startsWith('bg-')) body.classList.remove(c); });
+
+    if (name === 'custom') {
+        const url = localStorage.getItem('bg_custom_url');
+        if (url) {
+            body.classList.add('bg-custom');
+            body.style.setProperty('--bg-custom-url', `url("${url}")`);
+        } else {
+            body.classList.add('bg-mist');
+            name = 'mist';
+        }
+    } else {
+        body.classList.add('bg-' + name);
+        body.style.removeProperty('--bg-custom-url');
+    }
+
+    localStorage.setItem('bg', name);
+    document.querySelectorAll('.bg-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.bg === name);
+    });
+    if (!silent) toast('已切换背景');
+}
+
+function onBgUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        // 压缩到 1200px 宽，控制大小
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxW = 1600;
+            const scale = Math.min(1, maxW / img.width);
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const url = canvas.toDataURL('image/jpeg', 0.85);
+            try {
+                localStorage.setItem('bg_custom_url', url);
+                applyBackground('custom');
+                toast('背景已设为自传图');
+            } catch (err) {
+                toast('图片太大存不下，换张小的');
+            }
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// ============== 字体切换 ==============
+let serifFontLoaded = false;
+function applyFont(name, silent) {
+    const body = document.body;
+    if (name === 'serif') {
+        body.classList.add('font-serif');
+        if (!serifFontLoaded) {
+            // 动态注入霞鹜文楷 webfont
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css';
+            document.head.appendChild(link);
+            serifFontLoaded = true;
+        }
+    } else {
+        body.classList.remove('font-serif');
+    }
+    localStorage.setItem('font', name);
+    document.querySelectorAll('.font-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.font === name);
+    });
+    if (!silent) toast('已切换字体');
 }
 
 // ============== 语音输入 ==============
