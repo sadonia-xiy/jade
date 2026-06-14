@@ -773,34 +773,37 @@
         }
         .card-images.count-1 img { aspect-ratio: 4/3; }
 
-        /* 迷你播放器 */
+        /* 迷你播放器（右下浮动 · 透明 icon） */
         .mini-player {
             position: fixed;
-            top: 10px;
-            right: 10px;
+            bottom: 20px;
+            right: 16px;
             display: flex;
-            gap: 6px;
+            gap: 12px;
             z-index: 110;
-            align-items: flex-start;
+            align-items: center;
         }
         .mp-btn {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: var(--surface);
-            backdrop-filter: blur(20px) saturate(160%);
-            -webkit-backdrop-filter: blur(20px) saturate(160%);
-            border: 1px solid var(--border);
+            background: transparent;
+            border: none;
             color: var(--accent);
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 0;
-            transition: transform 0.15s, background 0.2s;
+            transition: background 0.2s, transform 0.15s;
+            opacity: 0.7;
         }
-        .mp-btn:active { transform: scale(0.92); }
+        .mp-btn:hover {
+            opacity: 1;
+            background: var(--bg-soft);
+        }
+        .mp-btn:active { transform: scale(0.9); }
 
         /* EQ 跳动柱状图 */
         .eq-bars {
@@ -827,12 +830,12 @@
             50%      { transform: scaleY(1); }
         }
 
-        /* 选轨菜单 */
+        /* 选轨菜单（向上弹出） */
         .mp-menu {
             position: absolute;
-            top: 44px;
+            bottom: 44px;
             right: 0;
-            min-width: 170px;
+            min-width: 180px;
             background: var(--surface);
             backdrop-filter: blur(24px) saturate(180%);
             -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -841,6 +844,7 @@
             padding: 8px;
             display: none;
             z-index: 120;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
         .mp-menu.show { display: block; }
         .mp-menu-title {
@@ -1516,12 +1520,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ============== 主题切换 ==============
 // ============== 迷你播放器（Web Audio 合成白噪音） ==============
+// 每种音用 brown noise（更柔和）+ 多层滤波 + 慢起伏 LFO
 const AUDIO_TRACKS = {
-    rain:   { name: '雨声', type: 'lowpass',  freq: 1000, q: 0.5 },
-    ocean:  { name: '海浪', type: 'lowpass',  freq: 350,  q: 1.2, lfo: { rate: 0.12, depth: 250 } },
-    forest: { name: '森林', type: 'bandpass', freq: 1800, q: 0.6 },
-    cafe:   { name: '咖啡馆', type: 'lowpass',  freq: 650,  q: 0.4 },
-    fire:   { name: '篝火', type: 'lowpass',  freq: 500,  q: 0.5, lfo: { rate: 4, depth: 80 } }
+    rain:   { name: '雨声',   noise: 'pink',  layers: [
+        { type: 'lowpass', freq: 3000, q: 0.4 },
+        { type: 'bandpass', freq: 6000, q: 1, gain: 0.3 }  // 高频"水滴"感
+    ], lfo: { rate: 0.3, depth: 800, target: 0 } },
+
+    ocean:  { name: '海浪',   noise: 'brown', layers: [
+        { type: 'lowpass', freq: 600, q: 1 }
+    ], lfo: { rate: 0.08, depth: 400, target: 0 } },
+
+    forest: { name: '森林',   noise: 'pink', layers: [
+        { type: 'highpass', freq: 800, q: 0.5 },
+        { type: 'lowpass', freq: 4000, q: 0.5 }
+    ], lfo: { rate: 0.5, depth: 1500, target: 0 } },
+
+    cafe:   { name: '咖啡馆', noise: 'brown', layers: [
+        { type: 'lowpass', freq: 900, q: 0.3 }
+    ], lfo: { rate: 0.4, depth: 200, target: 0 } },
+
+    fire:   { name: '篝火',   noise: 'brown', layers: [
+        { type: 'lowpass', freq: 700, q: 0.5 }
+    ], lfo: { rate: 3, depth: 250, target: 0 } }
 };
 
 let _audioCtx = null;
@@ -1541,6 +1562,41 @@ function getAudioCtx() {
     return _audioCtx;
 }
 
+// 生成 pink / brown 噪音 buffer（比纯白柔和很多）
+function makeNoiseBuffer(ctx, type) {
+    const size = 5 * ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    if (type === 'brown') {
+        // Brownian noise: 低频更多
+        let lastOut = 0;
+        for (let i = 0; i < size; i++) {
+            const white = Math.random() * 2 - 1;
+            data[i] = (lastOut + 0.02 * white) / 1.02;
+            lastOut = data[i];
+            data[i] *= 3.5;
+        }
+    } else if (type === 'pink') {
+        // Pink noise (Voss-McCartney): 中频更多，温和
+        let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
+        for (let i = 0; i < size; i++) {
+            const white = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + white * 0.0555179;
+            b1 = 0.99332 * b1 + white * 0.0750759;
+            b2 = 0.96900 * b2 + white * 0.1538520;
+            b3 = 0.86650 * b3 + white * 0.3104856;
+            b4 = 0.55000 * b4 + white * 0.5329522;
+            b5 = -0.7616 * b5 - white * 0.0168980;
+            data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+            b6 = white * 0.115926;
+        }
+    } else {
+        // white
+        for (let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+}
+
 function stopAudio() {
     if (_currentNodes) {
         try { _currentNodes.source.stop(); } catch (_) {}
@@ -1556,33 +1612,36 @@ function playTrack(name) {
     const ctx = getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
 
-    // 生成白噪音 buffer
-    const bufferSize = 4 * ctx.sampleRate;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const out = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) out[i] = Math.random() * 2 - 1;
-
     const source = ctx.createBufferSource();
-    source.buffer = buffer;
+    source.buffer = makeNoiseBuffer(ctx, cfg.noise || 'pink');
     source.loop = true;
 
-    const filter = ctx.createBiquadFilter();
-    filter.type = cfg.type;
-    filter.frequency.value = cfg.freq;
-    filter.Q.value = cfg.q;
+    // 多层滤波串联
+    let chainEnd = source;
+    const filters = [];
+    cfg.layers.forEach(layer => {
+        const f = ctx.createBiquadFilter();
+        f.type = layer.type;
+        f.frequency.value = layer.freq;
+        f.Q.value = layer.q;
+        chainEnd.connect(f);
+        chainEnd = f;
+        filters.push(f);
+    });
+    chainEnd.connect(_gainNode);
 
-    source.connect(filter).connect(_gainNode);
-
-    // LFO（用于海浪起伏、篝火噼啪感）
+    // LFO 慢起伏，给"呼吸感"，作用在第一层 filter 的 frequency 上
     let lfo = null;
-    if (cfg.lfo) {
+    if (cfg.lfo && filters[cfg.lfo.target ?? 0]) {
         lfo = ctx.createOscillator();
+        lfo.type = 'sine';
         const lfoGain = ctx.createGain();
         lfo.frequency.value = cfg.lfo.rate;
         lfoGain.gain.value = cfg.lfo.depth;
-        lfo.connect(lfoGain).connect(filter.frequency);
+        lfo.connect(lfoGain).connect(filters[cfg.lfo.target ?? 0].frequency);
         lfo.start();
     }
+
     source.start();
     _currentNodes = { source, lfo };
     _currentTrack = name;
