@@ -693,6 +693,106 @@
             margin-top: 14px;
         }
 
+        /* 图片功能 */
+        .pending-images {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 12px 0 8px;
+        }
+        .pending-images:empty { margin: 0; }
+        .pending-img-wrap {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+        .pending-img-wrap img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .pending-img-del {
+            position: absolute;
+            top: 4px; right: 4px;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.55);
+            color: white;
+            border: none;
+            font-size: 13px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-image-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: var(--surface);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            color: var(--muted);
+            font-size: 14px;
+            cursor: pointer;
+            font-family: inherit;
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .add-image-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .img-count {
+            font-size: 11px;
+            color: var(--muted);
+            margin-left: 4px;
+        }
+
+        /* 卡片里的图片 */
+        .card-images {
+            display: grid;
+            gap: 6px;
+            margin: 10px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .card-images.count-1 { grid-template-columns: 1fr; }
+        .card-images.count-2 { grid-template-columns: 1fr 1fr; }
+        .card-images.count-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .card-images img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            cursor: zoom-in;
+            border-radius: 8px;
+            background: var(--surface);
+        }
+        .card-images.count-1 img { aspect-ratio: 4/3; }
+
+        /* 图片放大查看 */
+        .image-viewer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.92);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            cursor: zoom-out;
+        }
+        .image-viewer.show { display: flex; }
+        .image-viewer img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
         /* Empty / spinner */
         .empty-state {
             text-align: center;
@@ -751,6 +851,14 @@
         <textarea id="thought-input" placeholder="现在脑子里飘着什么…"></textarea>
         <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="语音输入">🎤</button>
     </div>
+
+    <!-- 待发送图片预览区 -->
+    <div class="pending-images" id="pending-images"></div>
+    <button class="add-image-btn" id="add-image-btn" onclick="document.getElementById('image-upload').click()">
+        <span>📎</span> 添加图片 <span id="image-count" class="img-count"></span>
+    </button>
+    <input type="file" id="image-upload" accept="image/*" multiple style="display:none" onchange="onImagePick(event)">
+
     <button class="submit-btn" id="submit-btn" onclick="submitThought()">放下</button>
     <div class="status-msg" id="status-msg"></div>
 </div>
@@ -928,6 +1036,10 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="image-viewer" id="image-viewer" onclick="closeImageViewer()">
+    <img id="image-viewer-img" alt="预览">
+</div>
 
 <div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
     <div class="modal">
@@ -1168,18 +1280,168 @@ function backToSettings() {
 }
 
 // ── Write ──
+// ============== IndexedDB 图片存储 ==============
+const IMG_DB_NAME = 'shannian-images';
+const IMG_STORE = 'images';
+let imgDB = null;
+
+function openImageDB() {
+    return new Promise((resolve, reject) => {
+        if (imgDB) return resolve(imgDB);
+        const req = indexedDB.open(IMG_DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(IMG_STORE)) {
+                db.createObjectStore(IMG_STORE);
+            }
+        };
+        req.onsuccess = (e) => { imgDB = e.target.result; resolve(imgDB); };
+        req.onerror = (e) => reject(e.target.error);
+    });
+}
+
+async function putImage(id, blob) {
+    const db = await openImageDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(IMG_STORE, 'readwrite');
+        tx.objectStore(IMG_STORE).put(blob, id);
+        tx.oncomplete = () => resolve(id);
+        tx.onerror = (e) => reject(e.target.error);
+    });
+}
+
+async function getImage(id) {
+    const db = await openImageDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(IMG_STORE, 'readonly');
+        const req = tx.objectStore(IMG_STORE).get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
+}
+
+async function deleteImage(id) {
+    const db = await openImageDB();
+    return new Promise((resolve) => {
+        const tx = db.transaction(IMG_STORE, 'readwrite');
+        tx.objectStore(IMG_STORE).delete(id);
+        tx.oncomplete = () => resolve();
+    });
+}
+
+// ============== 图片选取 / 压缩 / 预览 ==============
+const MAX_IMAGES = 3;
+let pendingImages = []; // [{ blob, dataUrl }]
+
+function onImagePick(e) {
+    const files = Array.from(e.target.files);
+    e.target.value = ''; // 清空，允许下次重选同名文件
+    files.forEach(file => {
+        if (pendingImages.length >= MAX_IMAGES) {
+            toast(`最多 ${MAX_IMAGES} 张图`);
+            return;
+        }
+        compressImage(file).then(({ blob, dataUrl }) => {
+            pendingImages.push({ blob, dataUrl });
+            renderPendingImages();
+        });
+    });
+}
+
+function compressImage(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const maxDim = 1600;
+                const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob((blob) => {
+                    resolve({ blob, dataUrl: canvas.toDataURL('image/jpeg', 0.85) });
+                }, 'image/jpeg', 0.85);
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderPendingImages() {
+    const wrap = document.getElementById('pending-images');
+    wrap.innerHTML = pendingImages.map((img, i) => `
+        <div class="pending-img-wrap">
+            <img src="${img.dataUrl}" alt="">
+            <button class="pending-img-del" onclick="removePendingImage(${i})">×</button>
+        </div>
+    `).join('');
+    document.getElementById('image-count').textContent =
+        pendingImages.length ? `${pendingImages.length}/${MAX_IMAGES}` : '';
+}
+
+function removePendingImage(i) {
+    pendingImages.splice(i, 1);
+    renderPendingImages();
+}
+
+// ============== 图片放大 ==============
+async function openImageViewer(imageId) {
+    const blob = await getImage(imageId);
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const viewer = document.getElementById('image-viewer');
+    const imgEl = document.getElementById('image-viewer-img');
+    imgEl.src = url;
+    imgEl.dataset.objectUrl = url;
+    viewer.classList.add('show');
+}
+
+function closeImageViewer() {
+    const viewer = document.getElementById('image-viewer');
+    const imgEl = document.getElementById('image-viewer-img');
+    if (imgEl.dataset.objectUrl) {
+        URL.revokeObjectURL(imgEl.dataset.objectUrl);
+        delete imgEl.dataset.objectUrl;
+    }
+    viewer.classList.remove('show');
+    imgEl.src = '';
+}
+
+// ============== 卡片图片渲染 ==============
+async function renderCardImages(card, imageIds) {
+    if (!imageIds || !imageIds.length) return;
+    const wrap = card.querySelector('.card-images');
+    if (!wrap) return;
+    for (let i = 0; i < imageIds.length; i++) {
+        const id = imageIds[i];
+        try {
+            const blob = await getImage(id);
+            if (!blob) continue;
+            const url = URL.createObjectURL(blob);
+            const img = document.createElement('img');
+            img.src = url;
+            img.onclick = (e) => { e.stopPropagation(); openImageViewer(id); };
+            wrap.appendChild(img);
+        } catch (_) {}
+    }
+}
+
+// ============== 提交念头 ==============
 async function submitThought() {
     const input = document.getElementById('thought-input');
     const content = input.value.trim();
-    if (!content) return;
+    if (!content && !pendingImages.length) return;
 
     const apiKey = localStorage.getItem('sk_key');
-    if (!apiKey) {
+    if (!apiKey && content) {
         toast('请先在设置里填入 API Key');
         return;
     }
 
-    const btn = document.getElementById('submit-btn');
     setSubmitting(true);
 
     const thought = {
@@ -1187,20 +1449,41 @@ async function submitThought() {
         content,
         timestamp: new Date().toISOString(),
         mood: { label: '未知', valence: 'neutral', emoji: '○' },
-        topics: []
+        topics: [],
+        images: []
     };
 
+    // 先把图存进 IndexedDB
+    for (let i = 0; i < pendingImages.length; i++) {
+        const imgId = `img_${thought.id}_${i}`;
+        try {
+            await putImage(imgId, pendingImages[i].blob);
+            thought.images.push(imgId);
+        } catch (e) {
+            console.error('存图失败', e);
+        }
+    }
+
     try {
-        const result = await classifyThought(content);
-        thought.mood = result.mood;
-        thought.topics = result.topics || [];
+        if (content) {
+            const result = await classifyThought(content);
+            thought.mood = result.mood;
+            thought.topics = result.topics || [];
+        } else {
+            // 没文字只有图：用占位心情
+            thought.mood = { label: '图片', valence: 'neutral', emoji: '🖼' };
+        }
         saveThought(thought);
         input.value = '';
+        pendingImages = [];
+        renderPendingImages();
         toast(thought.mood.emoji + ' ' + thought.mood.label);
     } catch (e) {
         console.error(e);
         saveThought(thought);
         input.value = '';
+        pendingImages = [];
+        renderPendingImages();
         toast('已保存（AI 分析失败）');
     }
 
@@ -1260,9 +1543,10 @@ function renderArchive() {
         .map(([, g]) => `
             <div class="date-group">
                 <div class="date-label">${g.label}</div>
-                ${g.items.map(renderCard).join('')}
+                ${g.items.map(t => renderCard(t)).join('')}
             </div>
         `).join('');
+    loadAllCardImages();
 }
 
 function renderCard(t, withDate = false) {
@@ -1273,9 +1557,15 @@ function renderCard(t, withDate = false) {
         ? `${d.getMonth()+1}/${d.getDate()} ${hh}:${mm}`
         : `${hh}:${mm}`;
     const topics = (t.topics || []).map(tp => `<span class="tag">${tp}</span>`).join('');
+    const imgCount = (t.images || []).length;
+    const imgIdsAttr = imgCount ? `data-image-ids="${(t.images || []).join(',')}"` : '';
+    const imgWrap = imgCount
+        ? `<div class="card-images count-${imgCount}"></div>`
+        : '';
     return `
-        <div class="thought-card ${t.mood.valence || 'neutral'}">
-            <div class="thought-content">${escHtml(t.content)}</div>
+        <div class="thought-card ${t.mood.valence || 'neutral'}" ${imgIdsAttr}>
+            ${t.content ? `<div class="thought-content">${escHtml(t.content)}</div>` : ''}
+            ${imgWrap}
             <div class="thought-meta">
                 <div class="thought-tags">
                     <span class="mood-emoji">${t.mood.emoji}</span>
@@ -1289,6 +1579,14 @@ function renderCard(t, withDate = false) {
                 <button class="card-action-btn del" onclick="deleteThought('${t.id}')">删除</button>
             </div>
         </div>`;
+}
+
+// 渲染完 archive / clusters 后异步加载图片
+function loadAllCardImages() {
+    document.querySelectorAll('.thought-card[data-image-ids]').forEach(card => {
+        const ids = (card.dataset.imageIds || '').split(',').filter(Boolean);
+        if (ids.length) renderCardImages(card, ids);
+    });
 }
 
 let editingId = null;
@@ -1334,8 +1632,14 @@ async function saveEdit() {
     toast('已更新');
 }
 
-function deleteThought(id) {
+async function deleteThought(id) {
     if (!confirm('删除这条念头？')) return;
+    const target = getThoughts().find(x => x.id === id);
+    if (target && target.images) {
+        for (const imgId of target.images) {
+            try { await deleteImage(imgId); } catch (_) {}
+        }
+    }
     const thoughts = getThoughts().filter(x => x.id !== id);
     localStorage.setItem('thoughts', JSON.stringify(thoughts));
     renderArchive();
@@ -1474,6 +1778,7 @@ function renderClusters(clusters, thoughts) {
             ${(c.indices || []).filter(i => thoughts[i]).map(i => renderCard(thoughts[i], true)).join('')}
         </div>
     `).join('');
+    loadAllCardImages();
 }
 
 // ── Settings ──
