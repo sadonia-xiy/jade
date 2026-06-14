@@ -935,6 +935,56 @@
             margin-top: 2px;
         }
 
+        /* 月度小结 */
+        .summary-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            min-height: 48px;
+        }
+        .summary-text {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text);
+            font-style: italic;
+        }
+        .summary-loading {
+            color: var(--muted);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .summary-gen-btn {
+            background: none;
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            width: 100%;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .summary-gen-btn:hover { border-color: var(--accent); background: var(--bg-soft); }
+        .summary-regen {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 11px;
+            cursor: pointer;
+            margin-top: 8px;
+            padding: 0;
+            font-family: inherit;
+        }
+        .summary-regen:hover { color: var(--accent); }
+        .summary-error {
+            color: var(--negative);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
         /* 词云 */
         .word-cloud {
             display: flex;
@@ -2018,51 +2068,90 @@ function closeMonthReport(e) {
 
 // 中文停用词（不出现在词云里）
 const STOP_WORDS = new Set([
+    // 基础虚词
     '的','了','是','在','我','你','他','她','它','们','和','或','跟','与','也','都',
-    '就','还','又','要','想','会','可以','可能','应该','觉得','感觉','有点','有些',
+    '就','还','又','要','想','会','可以','可能','应该','觉得','感觉','有点','有些','需要',
     '一','二','三','一个','一些','这','那','这个','那个','这样','那样','这里','那里',
-    '什么','怎么','为什么','哪里','哪个','怎样','多少','几','人','事','东西',
+    '什么','怎么','为什么','哪里','哪个','怎样','多少','几','人','事','东西','地方','时候','时间',
     '吧','呢','吗','啊','哦','嗯','哈','哎','呀','么','嘛','哇','喔','咯','诶',
     '不','没','没有','别','不要','别人','自己','大家','他们','她们','它们',
     '今天','昨天','明天','现在','后来','以前','以后','刚才','晚上','早上','中午','下午','上午','下来','起来','过来','回来','过去','下去','出来','里面','外面','上面','下面',
-    '但是','可是','不过','然后','所以','因为','虽然','如果','要是','只是','只要','只有','还是','也许','大概','大约','其实','另外','还有','就是','不是','已经','正在','一直',
-    '很','太','非常','真的','蛮','挺','超','特别','格外','格','超级','十分',
-    '把','被','让','使','给','为','由','向','从','到','对','于','把','以',
+    '但是','可是','不过','然后','所以','因为','虽然','如果','要是','只是','只要','只有','还是','也许','大概','大约','其实','另外','还有','就是','不是','已经','正在','一直','只能','只好','只怕',
+    '很','太','非常','真的','蛮','挺','超','特别','格外','格','超级','十分','尤其','最为','非常的',
+    '把','被','让','使','给','为','由','向','从','到','对','于','把','以','至',
     '上','下','里','外','中','内','间','边','旁','前','后','左','右','东','西','南','北',
-    '能','可以','要不','不要','可能','一定','或许','也许','大概',
+    '能','可以','要不','不要','可能','一定','或许','也许','大概','或者',
     '看','听','说','想','做','去','来','到','走','坐','站','吃','喝','睡','起',
     '点','分','秒','次','遍','回','下','场','局','把','顿','回','下',
     '一下','一会','一会儿','一直','一起','一些','一点','一点点',
     '好','不好','差','错','对','是','否','行','好的','行的','可以的',
     '哈哈','嘿嘿','呵呵','嗯嗯','啊啊','哦哦','嗯哼','哈哈哈','哎呀','嘿哟',
+
+    // 弱语义副词组合 / 疑问短语（这一组最容易污染词云）
+    '是不是','是不','是吧','不是','不会','不能','不行','不用','不想','不知道','不知',
+    '也要','也是','也好','也行','也不','也会','也想','也能','也有',
+    '又要','又是','又来','又去','又有','又会',
+    '都要','都是','都有','都会','都不',
+    '还要','还有','还是','还能','还会','还想','还要',
+    '都说','都得','要要','想想','看看','听听','试试','坐坐','站站',
+    '一会儿','一阵','一种','一类','一些','一片','一段','一句','一阵子','一直到',
+    '有时','有时候','有的时候','的时候','的话','这种','那种','这类','那类','这边','那边','这种事','那种事',
+    '怎么办','怎么样','咋办','咋样','为啥','为何','干嘛','为何','作何','何时','何处','何故',
+    '差不多','差不离','大致','大概','基本','基本上','大多','大都','大半','多半','几乎','几乎','大致上',
+    '完全','彻底','全部','所有','整个','整个儿','全都','全是','全有','全部都',
+    '我的','你的','他的','她的','它的','我们的','你们的','他们的','她们的',
+    '我也','你也','他也','她也','它也',
+    '感度','信任','喜欢',  // 分词碎片或太通用——可按需调整
+
+    // 时态助词
+    '过去','过来','下来','起来','出来','进去','上去','下去','回来','回去',
+    '过','来过','去过','看过','听过','想过','说过','做过','吃过','喝过','睡过',
+
+    // 英文功能词
     'a','an','the','is','am','are','was','were','be','being','been',
     'i','you','he','she','it','we','they','my','your','his','her','its','our','their',
     'to','of','in','on','at','for','with','by','from','about','as','than','then','so','if','but','and','or','not',
+    'do','does','did','have','has','had','will','would','can','could','should','may','might','must','shall',
+    'this','that','these','those','here','there','what','when','where','why','how','who','whom','which',
 ]);
+
+// 进一步过滤：弱语义短语模式
+function isWeakWord(w) {
+    if (!w || w.length < 2) return true;
+    // 以"X要/X是/X不/X也/X都"结尾的 2-3 字组合（"也要、又要、还是、都不"已在停用词里，但残余兜底）
+    if (w.length <= 3 && /(是|要|不|也|都|又|还|想|会|能|有|的|得|了)$/.test(w) &&
+        /^(也|又|还|都|不|没|只|想|要|会|是|又|又是|又有|很|挺|蛮|太|更)/.test(w)) {
+        return true;
+    }
+    // 全是数字
+    if (/^\d+$/.test(w)) return true;
+    return false;
+}
 
 function tokenizeChinese(text) {
     if (!text) return [];
+    const keep = (w) => w && w.length >= 2 && !STOP_WORDS.has(w) && !isWeakWord(w);
     // 优先使用 Intl.Segmenter（现代浏览器支持）
     if (window.Intl && Intl.Segmenter) {
         try {
             const seg = new Intl.Segmenter('zh', { granularity: 'word' });
             return [...seg.segment(text)]
                 .filter(s => s.isWordLike)
-                .map(s => s.segment.trim())
-                .filter(w => w.length >= 2 && !STOP_WORDS.has(w));
+                .map(s => s.segment.trim().toLowerCase())
+                .filter(keep);
         } catch (_) {}
     }
     // 回退：2-3 字滑窗
     const out = [];
     const clean = text.replace(/[^一-龥a-zA-Z]/g, ' ');
     clean.split(/\s+/).filter(Boolean).forEach(seg => {
-        if (/[a-zA-Z]/.test(seg) && seg.length >= 2 && !STOP_WORDS.has(seg.toLowerCase())) {
+        if (/[a-zA-Z]/.test(seg) && keep(seg.toLowerCase())) {
             out.push(seg.toLowerCase());
         }
         for (let len = 2; len <= 3; len++) {
             for (let i = 0; i + len <= seg.length; i++) {
                 const w = seg.slice(i, i + len);
-                if (!STOP_WORDS.has(w)) out.push(w);
+                if (keep(w)) out.push(w);
             }
         }
     });
@@ -2145,6 +2234,9 @@ function renderMonthReport() {
             </div>
         `).join('');
 
+    const summaryKey = `month_summary_${year}_${month+1}`;
+    const cachedSummary = localStorage.getItem(summaryKey);
+
     document.getElementById('month-report-body').innerHTML = `
         <div class="report-section">
             <div class="report-stats">
@@ -2156,6 +2248,16 @@ function renderMonthReport() {
                     <div class="report-stat-num">${dayCount}</div>
                     <div class="report-stat-label">个有念头的日子</div>
                 </div>
+            </div>
+        </div>
+
+        <div class="report-section">
+            <div class="report-section-title">月度小结</div>
+            <div class="summary-box" id="summary-box">
+                ${cachedSummary
+                    ? `<div class="summary-text">${escHtml(cachedSummary)}</div>
+                       <button class="summary-regen" onclick="generateMonthSummary(${year}, ${month}, true)">重新生成</button>`
+                    : `<button class="summary-gen-btn" onclick="generateMonthSummary(${year}, ${month})">✦ 让 AI 写一句</button>`}
             </div>
         </div>
 
@@ -2172,6 +2274,77 @@ function renderMonthReport() {
             <div class="word-cloud">${wordCloudHtml}</div>
         </div>
     `;
+}
+
+async function generateMonthSummary(year, month, force) {
+    const box = document.getElementById('summary-box');
+    const apiKey = localStorage.getItem('sk_key');
+    if (!apiKey) {
+        toast('请先在设置里填入 API Key');
+        return;
+    }
+
+    const thoughts = getThoughts()
+        .filter(t => {
+            const d = new Date(t.timestamp);
+            return d.getFullYear() === year && d.getMonth() === month;
+        })
+        .filter(t => t.content);
+
+    if (!thoughts.length) {
+        box.innerHTML = '<div class="summary-text">这个月没有文字念头</div>';
+        return;
+    }
+
+    box.innerHTML = '<div class="summary-loading"><span class="spinner"></span> 感知中…</div>';
+
+    const lines = thoughts.map(t => {
+        const d = new Date(t.timestamp);
+        const dateStr = `${d.getMonth()+1}/${d.getDate()}`;
+        const mood = (t.mood && t.mood.label) || '';
+        return `${dateStr} | ${mood} | ${t.content.slice(0, 120)}`;
+    }).join('\n');
+
+    const { apiKey: ak, apiBase, model } = getApiConfig();
+    const prompt = `你是一个温柔的情绪感知助手。下面是主人这个月（${year}年${month+1}月）写的闪念记录。
+
+请用**一句话（不超过 40 个字）**温柔地概括她这个月的整体状态。
+不评判，不建议，不说"建议你如何"。只如实感知。可以提到她的主要情绪基调、反复出现的主题。
+
+不要加引号，不要加"这个月"开头，直接说内容。
+
+念头列表：
+${lines}`;
+
+    try {
+        const res = await fetch(`${apiBase}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${ak}`
+            },
+            body: JSON.stringify({
+                model,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.6
+            })
+        });
+        if (!res.ok) throw new Error('API ' + res.status);
+        const data = await res.json();
+        const summary = (data.choices[0].message.content || '').trim().replace(/^["'"」]|["'"」]$/g, '');
+        if (!summary) throw new Error('空回复');
+        localStorage.setItem(`month_summary_${year}_${month+1}`, summary);
+        box.innerHTML = `
+            <div class="summary-text">${escHtml(summary)}</div>
+            <button class="summary-regen" onclick="generateMonthSummary(${year}, ${month}, true)">重新生成</button>
+        `;
+    } catch (e) {
+        console.error(e);
+        box.innerHTML = `
+            <div class="summary-error">生成失败，再试一次？</div>
+            <button class="summary-gen-btn" onclick="generateMonthSummary(${year}, ${month})">重试</button>
+        `;
+    }
 }
 
 // ── AI ──
