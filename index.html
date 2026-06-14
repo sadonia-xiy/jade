@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -132,14 +132,28 @@
         }
 
         body {
-            background-image: var(--bg-img);
-            background-attachment: fixed;
-            background-size: cover;
+            background: transparent;
             color: var(--text);
             min-height: 100vh;
             max-width: 480px;
             margin: 0 auto;
             transition: color 0.3s;
+            position: relative;
+        }
+
+        /* 独立背景层：始终 viewport 大小，不被内容撑高、不变形 */
+        #bg-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: var(--bg-img);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            pointer-events: none;
         }
 
         /* 用户上传底图 */
@@ -481,6 +495,64 @@
         /* Settings */
         .settings-group { margin-bottom: 24px; }
 
+        /* iPhone 风格条目 */
+        .settings-entry {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            background: var(--surface);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: transform 0.15s, background 0.2s;
+        }
+        .settings-entry:active {
+            transform: scale(0.98);
+            background: var(--surface-strong);
+        }
+        .se-icon {
+            font-size: 22px;
+            width: 28px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .se-label {
+            flex: 1;
+            font-size: 16px;
+            color: var(--text);
+            font-weight: 500;
+        }
+        .se-sub {
+            font-size: 12px;
+            color: var(--muted);
+            margin-right: 4px;
+        }
+        .se-arrow {
+            color: var(--muted);
+            font-size: 22px;
+            line-height: 1;
+            margin-top: -2px;
+        }
+        .se-back {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 15px;
+            padding: 0 0 14px 0;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .subview-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: var(--text);
+        }
+
         .settings-label {
             font-size: 13px;
             color: var(--muted);
@@ -662,6 +734,8 @@
 </head>
 <body>
 
+<div id="bg-layer"></div>
+
 <nav class="nav">
     <button class="nav-btn active" data-view="write" onclick="showView('write', this)">写</button>
     <button class="nav-btn" data-view="archive" onclick="showView('archive', this)">看</button>
@@ -701,13 +775,40 @@
     <div id="cluster-list"></div>
 </div>
 
-<!-- 设置 -->
+<!-- 设置（主菜单） -->
 <div id="view-settings" class="view">
+    <div class="settings-entry" onclick="showSubSettings('appearance')">
+        <span class="se-icon">🎨</span>
+        <span class="se-label">外观</span>
+        <span class="se-sub">背景 · 字体</span>
+        <span class="se-arrow">›</span>
+    </div>
+    <div class="settings-entry" onclick="showSubSettings('api')">
+        <span class="se-icon">🤖</span>
+        <span class="se-label">AI 配置</span>
+        <span class="se-sub">API · 模型</span>
+        <span class="se-arrow">›</span>
+    </div>
+    <div class="settings-entry" onclick="showSubSettings('data')">
+        <span class="se-icon">📦</span>
+        <span class="se-label">数据备份</span>
+        <span class="se-sub">导出</span>
+        <span class="se-arrow">›</span>
+    </div>
+</div>
 
-    <!-- 外观 -->
+<!-- 外观子页 -->
+<div id="view-settings-appearance" class="view">
+    <button class="se-back" onclick="backToSettings()">‹ 设置</button>
+    <h2 class="subview-title">外观</h2>
+
     <div class="settings-group">
         <div class="settings-label">背景</div>
         <div class="bg-picker">
+            <button class="bg-chip" data-bg="rain" onclick="applyBackground('rain')">
+                <span class="bg-preview bg-prev-rain"></span>
+                <span>雨绿</span>
+            </button>
             <button class="bg-chip" data-bg="mist" onclick="applyBackground('mist')">
                 <span class="bg-preview bg-prev-mist"></span>
                 <span>晨雾</span>
@@ -727,10 +828,6 @@
             <button class="bg-chip" data-bg="warmth" onclick="applyBackground('warmth')">
                 <span class="bg-preview bg-prev-warmth"></span>
                 <span>暖光</span>
-            </button>
-            <button class="bg-chip" data-bg="rain" onclick="applyBackground('rain')">
-                <span class="bg-preview bg-prev-rain"></span>
-                <span>雨绿</span>
             </button>
             <button class="bg-chip" onclick="document.getElementById('bg-upload').click()">
                 <span class="bg-preview bg-prev-custom">+</span>
@@ -756,8 +853,13 @@
             霞鹜文楷 = 日记本手写感
         </div>
     </div>
+</div>
 
-    <!-- 已保存配置 -->
+<!-- AI 配置子页 -->
+<div id="view-settings-api" class="view">
+    <button class="se-back" onclick="backToSettings()">‹ 设置</button>
+    <h2 class="subview-title">AI 配置</h2>
+
     <div class="settings-group">
         <div class="settings-label">已保存的配置</div>
         <div id="profiles-list"></div>
@@ -809,10 +911,17 @@
         <button class="action-btn primary" onclick="saveSettings()" style="flex:1;margin:0">保存并使用</button>
         <button class="action-btn secondary" onclick="saveAsProfile()" style="flex:1;margin:0">另存为配置</button>
     </div>
+</div>
 
-    <div class="settings-group" style="margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--border);">
-        <div class="settings-label">数据备份</div>
-        <button class="action-btn secondary" onclick="exportData()">导出全部念头</button>
+<!-- 数据备份子页 -->
+<div id="view-settings-data" class="view">
+    <button class="se-back" onclick="backToSettings()">‹ 设置</button>
+    <h2 class="subview-title">数据备份</h2>
+
+    <div class="settings-group">
+        <div class="settings-label">导出</div>
+        <button class="action-btn secondary" onclick="exportData()" style="width:100%">📥 导出全部念头（JSON）</button>
+        <div class="settings-note" style="margin-top:6px">建议偶尔导出一份留底，换浏览器或清缓存就不丢了。</div>
     </div>
 
     <div id="settings-count" style="font-size:12px;color:var(--muted);margin-top:16px;"></div>
@@ -1039,7 +1148,23 @@ function showView(name, btn) {
     document.getElementById('view-' + name).classList.add('active');
     btn.classList.add('active');
     if (name === 'archive') renderArchive();
-    if (name === 'settings') { loadSettingsUI(); updateCount(); }
+    if (name === 'settings') updateCount();
+    window.scrollTo(0, 0);
+}
+
+// ── 二级菜单 ──
+function showSubSettings(sub) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-settings-' + sub).classList.add('active');
+    if (sub === 'api') loadSettingsUI();
+    if (sub === 'data') updateCount();
+    window.scrollTo(0, 0);
+}
+
+function backToSettings() {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-settings').classList.add('active');
+    window.scrollTo(0, 0);
 }
 
 // ── Write ──
@@ -1140,9 +1265,13 @@ function renderArchive() {
         `).join('');
 }
 
-function renderCard(t) {
+function renderCard(t, withDate = false) {
     const d = new Date(t.timestamp);
-    const time = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    const time = withDate
+        ? `${d.getMonth()+1}/${d.getDate()} ${hh}:${mm}`
+        : `${hh}:${mm}`;
     const topics = (t.topics || []).map(tp => `<span class="tag">${tp}</span>`).join('');
     return `
         <div class="thought-card ${t.mood.valence || 'neutral'}">
@@ -1342,7 +1471,7 @@ function renderClusters(clusters, thoughts) {
         <div class="cluster-group">
             <div class="cluster-theme">◆ ${c.theme}</div>
             ${c.mood_journey ? `<div class="cluster-journey">${c.mood_journey}</div>` : ''}
-            ${(c.indices || []).filter(i => thoughts[i]).map(i => renderCard(thoughts[i])).join('')}
+            ${(c.indices || []).filter(i => thoughts[i]).map(i => renderCard(thoughts[i], true)).join('')}
         </div>
     `).join('');
 }
