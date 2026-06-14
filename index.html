@@ -773,6 +773,225 @@
         }
         .card-images.count-1 img { aspect-ratio: 4/3; }
 
+        /* 「看」页工具栏：filter + 月历按钮 */
+        .archive-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .archive-toolbar .filter-bar { flex: 1; margin: 0; padding-bottom: 0; }
+        .calendar-icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--surface);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border: 1px solid var(--border);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* 月历 modal */
+        .cal-content {
+            background: var(--surface);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 16px;
+            width: 100%;
+            max-width: 420px;
+            max-height: 86vh;
+            overflow-y: auto;
+        }
+        .cal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .cal-nav-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 18px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .cal-month-label {
+            background: none;
+            border: none;
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+        .cal-month-label:hover { background: var(--bg-soft); }
+        .cal-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .cal-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 14px;
+            color: var(--text);
+            position: relative;
+            transition: background 0.15s;
+        }
+        .cal-day.other-month { opacity: 0.15; }
+        .cal-day.has-thoughts {
+            background: var(--surface);
+            cursor: pointer;
+        }
+        .cal-day.has-thoughts:hover { background: var(--surface-strong); }
+        .cal-day.today {
+            box-shadow: inset 0 0 0 2px var(--accent);
+        }
+        .cal-day-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            margin-top: 3px;
+        }
+        .cal-day-dot.positive { background: var(--positive); }
+        .cal-day-dot.negative { background: var(--negative); }
+        .cal-day-dot.neutral { background: var(--neutral); }
+        .cal-day-dot.mixed { background: var(--mixed); }
+
+        .cal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .cal-tip { font-size: 11px; color: var(--muted); }
+        .cal-close-btn {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        /* 月报 */
+        .report-section {
+            margin-bottom: 22px;
+        }
+        .report-section-title {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+        .report-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .report-stat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .report-stat-num {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .report-stat-label {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* 词云 */
+        .word-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 10px;
+            align-items: baseline;
+            justify-content: center;
+            padding: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            min-height: 80px;
+        }
+        .word-cloud span {
+            line-height: 1.4;
+            transition: opacity 0.2s;
+        }
+        .word-cloud span:hover { opacity: 0.7; }
+        .wc-1 { font-size: 12px; color: var(--muted); }
+        .wc-2 { font-size: 14px; color: var(--text); opacity: 0.7; }
+        .wc-3 { font-size: 18px; color: var(--text); opacity: 0.85; }
+        .wc-4 { font-size: 24px; color: var(--accent); font-weight: 500; }
+        .wc-5 { font-size: 32px; color: var(--accent); font-weight: 600; }
+
+        /* 心情分布饼图（CSS conic-gradient） */
+        .mood-pie-wrap {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .mood-pie {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .mood-legend {
+            flex: 1;
+            font-size: 12px;
+            color: var(--text);
+        }
+        .mood-legend-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+        .mood-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
         /* 图片放大查看 */
         .image-viewer {
             display: none;
@@ -865,12 +1084,15 @@
 
 <!-- 看 -->
 <div id="view-archive" class="view">
-    <div class="filter-bar">
-        <div class="filter-chip active" onclick="setFilter('all', this)">全部</div>
-        <div class="filter-chip" onclick="setFilter('positive', this)">😊 好的</div>
-        <div class="filter-chip" onclick="setFilter('negative', this)">🌧 难的</div>
-        <div class="filter-chip" onclick="setFilter('neutral', this)">☁️ 平的</div>
-        <div class="filter-chip" onclick="setFilter('mixed', this)">🌈 复杂</div>
+    <div class="archive-toolbar">
+        <div class="filter-bar">
+            <div class="filter-chip active" onclick="setFilter('all', this)">全部</div>
+            <div class="filter-chip" onclick="setFilter('positive', this)">😊 好的</div>
+            <div class="filter-chip" onclick="setFilter('negative', this)">🌧 难的</div>
+            <div class="filter-chip" onclick="setFilter('neutral', this)">☁️ 平的</div>
+            <div class="filter-chip" onclick="setFilter('mixed', this)">🌈 复杂</div>
+        </div>
+        <button class="calendar-icon-btn" onclick="openCalendar()" title="月历">📅</button>
     </div>
     <div id="archive-list"></div>
 </div>
@@ -1039,6 +1261,38 @@
 
 <div class="image-viewer" id="image-viewer" onclick="closeImageViewer()">
     <img id="image-viewer-img" alt="预览">
+</div>
+
+<!-- 月历 -->
+<div class="modal-overlay" id="calendar-modal" onclick="closeCalendar(event)">
+    <div class="cal-content" onclick="event.stopPropagation()">
+        <div class="cal-header">
+            <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+            <button class="cal-month-label" id="cal-month-label" onclick="openMonthReport()">2026年6月</button>
+            <button class="cal-nav-btn" onclick="calNext()">›</button>
+        </div>
+        <div class="cal-weekdays">
+            <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-footer">
+            <span class="cal-tip">点月份名查看月度概览</span>
+            <button class="cal-close-btn" onclick="closeCalendar()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 月报 -->
+<div class="modal-overlay" id="month-report-modal" onclick="closeMonthReport(event)">
+    <div class="cal-content" onclick="event.stopPropagation()">
+        <div class="cal-header">
+            <span class="cal-month-label" id="report-month-label" style="cursor:default">月报</span>
+            <button class="cal-close-btn" onclick="closeMonthReport()">×</button>
+        </div>
+        <div id="month-report-body">
+            <div class="empty-state">加载中…</div>
+        </div>
+    </div>
 </div>
 
 <div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
@@ -1540,8 +1794,8 @@ function renderArchive() {
 
     list.innerHTML = Object.entries(groups)
         .sort((a, b) => b[0].localeCompare(a[0]))
-        .map(([, g]) => `
-            <div class="date-group">
+        .map(([key, g]) => `
+            <div class="date-group" data-day="${key}">
                 <div class="date-label">${g.label}</div>
                 ${g.items.map(t => renderCard(t)).join('')}
             </div>
@@ -1658,6 +1912,266 @@ function sameDay(a, b) {
     return a.getFullYear() === b.getFullYear() &&
            a.getMonth() === b.getMonth() &&
            a.getDate() === b.getDate();
+}
+
+// ============== 月历 ==============
+let calCursor = new Date();
+calCursor.setDate(1);
+
+function dayKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function openCalendar() {
+    calCursor = new Date();
+    calCursor.setDate(1);
+    document.getElementById('calendar-modal').classList.add('show');
+    renderCalendar();
+}
+
+function closeCalendar(e) {
+    if (e && e.target.id && e.target.id !== 'calendar-modal') return;
+    document.getElementById('calendar-modal').classList.remove('show');
+}
+
+function calPrev() {
+    calCursor.setMonth(calCursor.getMonth() - 1);
+    renderCalendar();
+}
+function calNext() {
+    calCursor.setMonth(calCursor.getMonth() + 1);
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const thoughts = getThoughts();
+    // 按日期分组
+    const byDay = {};
+    thoughts.forEach(t => {
+        const k = dayKey(new Date(t.timestamp));
+        (byDay[k] = byDay[k] || []).push(t);
+    });
+
+    const year = calCursor.getFullYear();
+    const month = calCursor.getMonth();
+    const firstDay = new Date(year, month, 1).getDay(); // 0 = Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    document.getElementById('cal-month-label').textContent = `${year}年${month+1}月`;
+
+    let html = '';
+    for (let i = 0; i < firstDay; i++) {
+        html += `<div class="cal-day other-month"></div>`;
+    }
+
+    const todayK = dayKey(new Date());
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const k = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const items = byDay[k] || [];
+        const hasItems = items.length > 0;
+        let dotClass = '';
+        if (hasItems) {
+            const counts = {};
+            items.forEach(t => {
+                const v = (t.mood && t.mood.valence) || 'neutral';
+                counts[v] = (counts[v] || 0) + 1;
+            });
+            dotClass = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+        }
+        const todayCls = k === todayK ? 'today' : '';
+        const click = hasItems ? `onclick="jumpToDay('${k}')"` : '';
+        html += `
+            <div class="cal-day ${hasItems ? 'has-thoughts' : ''} ${todayCls}" ${click}>
+                <span>${d}</span>
+                ${hasItems ? `<span class="cal-day-dot ${dotClass}"></span>` : ''}
+            </div>`;
+    }
+    document.getElementById('cal-grid').innerHTML = html;
+}
+
+function jumpToDay(k) {
+    closeCalendar();
+    setTimeout(() => {
+        const group = document.querySelector(`.date-group[data-day="${k}"]`);
+        if (group) {
+            group.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // 闪一下高亮
+            group.style.transition = 'background 0.4s';
+            const old = group.style.background;
+            group.style.background = 'rgba(255, 220, 150, 0.25)';
+            setTimeout(() => { group.style.background = old; }, 1200);
+        }
+    }, 250);
+}
+
+// ============== 月报 ==============
+function openMonthReport() {
+    document.getElementById('month-report-modal').classList.add('show');
+    renderMonthReport();
+}
+
+function closeMonthReport(e) {
+    if (e && e.target.id && e.target.id !== 'month-report-modal') return;
+    document.getElementById('month-report-modal').classList.remove('show');
+}
+
+// 中文停用词（不出现在词云里）
+const STOP_WORDS = new Set([
+    '的','了','是','在','我','你','他','她','它','们','和','或','跟','与','也','都',
+    '就','还','又','要','想','会','可以','可能','应该','觉得','感觉','有点','有些',
+    '一','二','三','一个','一些','这','那','这个','那个','这样','那样','这里','那里',
+    '什么','怎么','为什么','哪里','哪个','怎样','多少','几','人','事','东西',
+    '吧','呢','吗','啊','哦','嗯','哈','哎','呀','么','嘛','哇','喔','咯','诶',
+    '不','没','没有','别','不要','别人','自己','大家','他们','她们','它们',
+    '今天','昨天','明天','现在','后来','以前','以后','刚才','晚上','早上','中午','下午','上午','下来','起来','过来','回来','过去','下去','出来','里面','外面','上面','下面',
+    '但是','可是','不过','然后','所以','因为','虽然','如果','要是','只是','只要','只有','还是','也许','大概','大约','其实','另外','还有','就是','不是','已经','正在','一直',
+    '很','太','非常','真的','蛮','挺','超','特别','格外','格','超级','十分',
+    '把','被','让','使','给','为','由','向','从','到','对','于','把','以',
+    '上','下','里','外','中','内','间','边','旁','前','后','左','右','东','西','南','北',
+    '能','可以','要不','不要','可能','一定','或许','也许','大概',
+    '看','听','说','想','做','去','来','到','走','坐','站','吃','喝','睡','起',
+    '点','分','秒','次','遍','回','下','场','局','把','顿','回','下',
+    '一下','一会','一会儿','一直','一起','一些','一点','一点点',
+    '好','不好','差','错','对','是','否','行','好的','行的','可以的',
+    '哈哈','嘿嘿','呵呵','嗯嗯','啊啊','哦哦','嗯哼','哈哈哈','哎呀','嘿哟',
+    'a','an','the','is','am','are','was','were','be','being','been',
+    'i','you','he','she','it','we','they','my','your','his','her','its','our','their',
+    'to','of','in','on','at','for','with','by','from','about','as','than','then','so','if','but','and','or','not',
+]);
+
+function tokenizeChinese(text) {
+    if (!text) return [];
+    // 优先使用 Intl.Segmenter（现代浏览器支持）
+    if (window.Intl && Intl.Segmenter) {
+        try {
+            const seg = new Intl.Segmenter('zh', { granularity: 'word' });
+            return [...seg.segment(text)]
+                .filter(s => s.isWordLike)
+                .map(s => s.segment.trim())
+                .filter(w => w.length >= 2 && !STOP_WORDS.has(w));
+        } catch (_) {}
+    }
+    // 回退：2-3 字滑窗
+    const out = [];
+    const clean = text.replace(/[^一-龥a-zA-Z]/g, ' ');
+    clean.split(/\s+/).filter(Boolean).forEach(seg => {
+        if (/[a-zA-Z]/.test(seg) && seg.length >= 2 && !STOP_WORDS.has(seg.toLowerCase())) {
+            out.push(seg.toLowerCase());
+        }
+        for (let len = 2; len <= 3; len++) {
+            for (let i = 0; i + len <= seg.length; i++) {
+                const w = seg.slice(i, i + len);
+                if (!STOP_WORDS.has(w)) out.push(w);
+            }
+        }
+    });
+    return out;
+}
+
+function renderMonthReport() {
+    const year = calCursor.getFullYear();
+    const month = calCursor.getMonth();
+    document.getElementById('report-month-label').textContent = `${year}年${month+1}月 · 月报`;
+
+    const thoughts = getThoughts().filter(t => {
+        const d = new Date(t.timestamp);
+        return d.getFullYear() === year && d.getMonth() === month;
+    });
+
+    if (!thoughts.length) {
+        document.getElementById('month-report-body').innerHTML =
+            '<div class="empty-state">这个月还没写下念头</div>';
+        return;
+    }
+
+    // 统计
+    const total = thoughts.length;
+    const moodCounts = { positive: 0, negative: 0, neutral: 0, mixed: 0 };
+    thoughts.forEach(t => {
+        const v = (t.mood && t.mood.valence) || 'neutral';
+        moodCounts[v] = (moodCounts[v] || 0) + 1;
+    });
+    const dayCount = new Set(thoughts.map(t => dayKey(new Date(t.timestamp)))).size;
+
+    // 词频
+    const freq = {};
+    thoughts.forEach(t => {
+        tokenizeChinese(t.content || '').forEach(w => {
+            freq[w] = (freq[w] || 0) + 1;
+        });
+    });
+    const wordsRanked = Object.entries(freq)
+        .filter(([_, n]) => n >= 1)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 50);
+
+    const maxN = wordsRanked.length ? wordsRanked[0][1] : 1;
+    const wordCloudHtml = wordsRanked.length
+        ? wordsRanked.map(([w, n]) => {
+            const ratio = n / maxN;
+            const level = ratio > 0.8 ? 5 : ratio > 0.55 ? 4 : ratio > 0.35 ? 3 : ratio > 0.2 ? 2 : 1;
+            return `<span class="wc-${level}">${escHtml(w)}</span>`;
+          }).join('')
+        : '<div class="empty-state" style="padding:10px">还没有足够的文字提取词云</div>';
+
+    // 饼图 conic-gradient
+    const moodColors = {
+        positive: 'var(--positive)',
+        negative: 'var(--negative)',
+        neutral: 'var(--neutral)',
+        mixed: 'var(--mixed)',
+    };
+    const moodNames = { positive: '好的', negative: '难的', neutral: '平的', mixed: '复杂' };
+    let cursor = 0;
+    const segments = [];
+    Object.entries(moodCounts).forEach(([v, n]) => {
+        if (n > 0) {
+            const pct = n / total * 100;
+            segments.push(`${moodColors[v]} ${cursor}% ${cursor + pct}%`);
+            cursor += pct;
+        }
+    });
+    const pieStyle = segments.length
+        ? `background: conic-gradient(${segments.join(', ')});`
+        : 'background: var(--neutral);';
+
+    const legendHtml = Object.entries(moodCounts)
+        .filter(([_, n]) => n > 0)
+        .map(([v, n]) => `
+            <div class="mood-legend-row">
+                <span class="mood-legend-dot" style="background:${moodColors[v]}"></span>
+                <span>${moodNames[v]} ${n}（${Math.round(n/total*100)}%）</span>
+            </div>
+        `).join('');
+
+    document.getElementById('month-report-body').innerHTML = `
+        <div class="report-section">
+            <div class="report-stats">
+                <div class="report-stat">
+                    <div class="report-stat-num">${total}</div>
+                    <div class="report-stat-label">条念头</div>
+                </div>
+                <div class="report-stat">
+                    <div class="report-stat-num">${dayCount}</div>
+                    <div class="report-stat-label">个有念头的日子</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-section">
+            <div class="report-section-title">心情分布</div>
+            <div class="mood-pie-wrap">
+                <div class="mood-pie" style="${pieStyle}"></div>
+                <div class="mood-legend">${legendHtml}</div>
+            </div>
+        </div>
+
+        <div class="report-section">
+            <div class="report-section-title">高频词云</div>
+            <div class="word-cloud">${wordCloudHtml}</div>
+        </div>
+    `;
 }
 
 // ── AI ──
