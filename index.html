@@ -773,6 +773,116 @@
         }
         .card-images.count-1 img { aspect-ratio: 4/3; }
 
+        /* 迷你播放器 */
+        .mini-player {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 6px;
+            z-index: 110;
+            align-items: flex-start;
+        }
+        .mp-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--surface);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: transform 0.15s, background 0.2s;
+        }
+        .mp-btn:active { transform: scale(0.92); }
+
+        /* EQ 跳动柱状图 */
+        .eq-bars {
+            display: flex;
+            gap: 2px;
+            align-items: flex-end;
+            height: 14px;
+        }
+        .eq-bars > span {
+            display: block;
+            width: 3px;
+            background: var(--accent);
+            border-radius: 1px;
+            animation: eq-bounce 0.9s ease-in-out infinite;
+            transform-origin: bottom;
+        }
+        .eq-bars > span:nth-child(1) { height: 60%;  animation-delay: -0.6s; }
+        .eq-bars > span:nth-child(2) { height: 100%; animation-delay: -0.3s; }
+        .eq-bars > span:nth-child(3) { height: 50%;  animation-delay: -0.1s; }
+        .eq-bars > span:nth-child(4) { height: 80%;  animation-delay: -0.4s; }
+        .eq-bars.paused > span { animation-play-state: paused; opacity: 0.5; }
+        @keyframes eq-bounce {
+            0%, 100% { transform: scaleY(0.3); }
+            50%      { transform: scaleY(1); }
+        }
+
+        /* 选轨菜单 */
+        .mp-menu {
+            position: absolute;
+            top: 44px;
+            right: 0;
+            min-width: 170px;
+            background: var(--surface);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 8px;
+            display: none;
+            z-index: 120;
+        }
+        .mp-menu.show { display: block; }
+        .mp-menu-title {
+            font-size: 11px;
+            color: var(--muted);
+            padding: 4px 8px 6px;
+        }
+        .mp-track-btn {
+            width: 100%;
+            text-align: left;
+            padding: 8px 10px;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .mp-track-btn:hover { background: var(--bg-soft); }
+        .mp-track-btn.active {
+            background: var(--bg-soft);
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .mp-menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 6px 4px;
+        }
+        .mp-volume-label {
+            font-size: 11px;
+            color: var(--muted);
+            padding: 0 8px 4px;
+        }
+        .mp-volume {
+            width: calc(100% - 16px);
+            margin: 0 8px 4px;
+            accent-color: var(--accent);
+        }
+
         /* 「看」页工具栏：filter + 月历按钮 */
         .archive-toolbar {
             display: flex;
@@ -1105,6 +1215,31 @@
 
 <div id="bg-layer"></div>
 
+<!-- 迷你播放器（右上角浮动） -->
+<div class="mini-player" id="mini-player">
+    <button class="mp-btn" id="mp-play" onclick="togglePlay()" title="播放/暂停">
+        <span id="mp-play-icon">▶</span>
+    </button>
+    <button class="mp-btn" id="mp-track" onclick="toggleTrackMenu()" title="切换环境音">
+        <span class="eq-bars paused" id="eq-bars">
+            <span></span><span></span><span></span><span></span>
+        </span>
+    </button>
+    <div class="mp-menu" id="mp-menu">
+        <div class="mp-menu-title">环境音</div>
+        <button class="mp-track-btn" data-track="rain" onclick="pickTrack('rain')">☔ 雨声</button>
+        <button class="mp-track-btn" data-track="ocean" onclick="pickTrack('ocean')">🌊 海浪</button>
+        <button class="mp-track-btn" data-track="forest" onclick="pickTrack('forest')">🌲 森林</button>
+        <button class="mp-track-btn" data-track="cafe" onclick="pickTrack('cafe')">☕ 咖啡馆</button>
+        <button class="mp-track-btn" data-track="fire" onclick="pickTrack('fire')">🔥 篝火</button>
+        <div class="mp-menu-divider"></div>
+        <div class="mp-volume-label">音量</div>
+        <input type="range" class="mp-volume" id="mp-volume" min="0" max="100" value="50" oninput="setVolume(this.value)">
+    </div>
+</div>
+
+<audio id="audio-el" loop></audio>
+
 <nav class="nav">
     <button class="nav-btn active" data-view="write" onclick="showView('write', this)">写</button>
     <button class="nav-btn" data-view="archive" onclick="showView('archive', this)">看</button>
@@ -1369,9 +1504,137 @@ document.addEventListener('DOMContentLoaded', () => {
     renderArchive();
     updateCount();
     initVoice();
+
+    // 恢复播放器状态
+    const savedTrack = localStorage.getItem('mp_track') || 'rain';
+    _currentTrack = savedTrack;
+    const savedVol = parseFloat(localStorage.getItem('mp_volume') || '0.5');
+    const volEl = document.getElementById('mp-volume');
+    if (volEl) volEl.value = Math.round(savedVol * 100);
+    updatePlayerUI();
 });
 
 // ============== 主题切换 ==============
+// ============== 迷你播放器（Web Audio 合成白噪音） ==============
+const AUDIO_TRACKS = {
+    rain:   { name: '雨声', type: 'lowpass',  freq: 1000, q: 0.5 },
+    ocean:  { name: '海浪', type: 'lowpass',  freq: 350,  q: 1.2, lfo: { rate: 0.12, depth: 250 } },
+    forest: { name: '森林', type: 'bandpass', freq: 1800, q: 0.6 },
+    cafe:   { name: '咖啡馆', type: 'lowpass',  freq: 650,  q: 0.4 },
+    fire:   { name: '篝火', type: 'lowpass',  freq: 500,  q: 0.5, lfo: { rate: 4, depth: 80 } }
+};
+
+let _audioCtx = null;
+let _gainNode = null;
+let _currentNodes = null;
+let _currentTrack = null;
+let _isPlaying = false;
+
+function getAudioCtx() {
+    if (!_audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        _audioCtx = new Ctx();
+        _gainNode = _audioCtx.createGain();
+        _gainNode.gain.value = parseFloat(localStorage.getItem('mp_volume') || '0.5');
+        _gainNode.connect(_audioCtx.destination);
+    }
+    return _audioCtx;
+}
+
+function stopAudio() {
+    if (_currentNodes) {
+        try { _currentNodes.source.stop(); } catch (_) {}
+        if (_currentNodes.lfo) try { _currentNodes.lfo.stop(); } catch (_) {}
+        _currentNodes = null;
+    }
+}
+
+function playTrack(name) {
+    stopAudio();
+    const cfg = AUDIO_TRACKS[name];
+    if (!cfg) return;
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+
+    // 生成白噪音 buffer
+    const bufferSize = 4 * ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const out = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) out[i] = Math.random() * 2 - 1;
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = cfg.type;
+    filter.frequency.value = cfg.freq;
+    filter.Q.value = cfg.q;
+
+    source.connect(filter).connect(_gainNode);
+
+    // LFO（用于海浪起伏、篝火噼啪感）
+    let lfo = null;
+    if (cfg.lfo) {
+        lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.value = cfg.lfo.rate;
+        lfoGain.gain.value = cfg.lfo.depth;
+        lfo.connect(lfoGain).connect(filter.frequency);
+        lfo.start();
+    }
+    source.start();
+    _currentNodes = { source, lfo };
+    _currentTrack = name;
+    _isPlaying = true;
+    updatePlayerUI();
+}
+
+function togglePlay() {
+    if (_isPlaying) {
+        stopAudio();
+        _isPlaying = false;
+    } else {
+        playTrack(_currentTrack || 'rain');
+    }
+    updatePlayerUI();
+}
+
+function pickTrack(name) {
+    playTrack(name);
+    localStorage.setItem('mp_track', name);
+    updatePlayerUI();
+    setTimeout(() => document.getElementById('mp-menu').classList.remove('show'), 200);
+}
+
+function toggleTrackMenu() {
+    document.getElementById('mp-menu').classList.toggle('show');
+}
+
+function setVolume(v) {
+    const vol = v / 100;
+    localStorage.setItem('mp_volume', vol);
+    if (_gainNode) _gainNode.gain.value = vol;
+}
+
+function updatePlayerUI() {
+    document.getElementById('mp-play-icon').textContent = _isPlaying ? '❚❚' : '▶';
+    const bars = document.getElementById('eq-bars');
+    bars.classList.toggle('paused', !_isPlaying);
+    document.querySelectorAll('.mp-track-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.track === _currentTrack);
+    });
+}
+
+// 点击页面其它地方关闭菜单
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('mp-menu');
+    if (menu && menu.classList.contains('show') &&
+        !e.target.closest('#mini-player')) {
+        menu.classList.remove('show');
+    }
+});
+
 function applyTheme() {
     const theme = localStorage.getItem('theme') || 'light';
     document.body.classList.toggle('dark', theme === 'dark');
