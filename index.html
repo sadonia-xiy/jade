@@ -1298,13 +1298,35 @@
     <button class="se-back" onclick="backToSettings()">‹ 设置</button>
     <h2 class="subview-title">数据备份</h2>
 
+    <!-- GitHub Gist 云端同步 -->
     <div class="settings-group">
-        <div class="settings-label">导出</div>
-        <button class="action-btn secondary" onclick="exportData()" style="width:100%">📥 导出全部念头（JSON）</button>
-        <div class="settings-note" style="margin-top:6px">建议偶尔导出一份留底，换浏览器或清缓存就不丢了。</div>
+        <div class="settings-label">☁️ GitHub 云端同步</div>
+        <div class="settings-note" style="margin-bottom:10px">写入后自动上传到你的 GitHub 私人 Gist，换浏览器/清缓存永不丢。需要 GitHub 账号。</div>
+        <div id="gist-status" style="font-size:12px;margin-bottom:10px"></div>
+        <input type="password" id="gh-token-input" placeholder="粘贴 GitHub Token（ghp_xxxxx）"
+            style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;margin-bottom:8px">
+        <button class="action-btn secondary" onclick="saveGhToken()" style="width:100%;margin-bottom:6px">保存 Token 并首次同步</button>
+        <div style="display:flex;gap:8px">
+            <button class="action-btn secondary" onclick="syncToGist()" style="flex:1">↑ 立即上传</button>
+            <button class="action-btn secondary" onclick="restoreFromGist()" style="flex:1">↓ 从云端恢复</button>
+        </div>
+        <div class="settings-note" style="margin-top:8px">
+            Token 获取：GitHub → Settings → Developer settings → Personal access tokens → 勾选 <b>gist</b> 权限生成
+        </div>
     </div>
 
-    <div id="settings-count" style="font-size:12px;color:var(--muted);margin-top:16px;"></div>
+    <!-- 本地导出 / 导入 -->
+    <div class="settings-group">
+        <div class="settings-label">本地导出 / 导入</div>
+        <button class="action-btn secondary" onclick="exportData()" style="width:100%;margin-bottom:8px">📥 导出全部念头（JSON）</button>
+        <label class="action-btn secondary" style="width:100%;box-sizing:border-box;text-align:center;cursor:pointer;display:block">
+            📤 从 JSON 导入
+            <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+        </label>
+        <div class="settings-note" style="margin-top:6px">导入会与现有念头合并，不会覆盖。</div>
+    </div>
+
+    <div id="settings-count" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1360,15 +1382,25 @@
 let currentFilter = 'all';
 
 // ── Init ──
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     applyTheme();
     applyBackground(localStorage.getItem('bg') || 'rain', true);
     applyFont(localStorage.getItem('font') || 'default', true);
     updateDate();
     loadSettingsUI();
+    initVoice();
+
+    // 启动恢复：localStorage 空时尝试从 IndexedDB 备份救回
+    const local = getThoughts();
+    if (!local.length) {
+        const backup = await readBackupDB();
+        if (backup && backup.length) {
+            localStorage.setItem('thoughts', JSON.stringify(backup));
+            toast(`从本地备份恢复了 ${backup.length} 条念头`);
+        }
+    }
     renderArchive();
     updateCount();
-    initVoice();
 });
 
 // ============== 主题切换 ==============
@@ -1573,7 +1605,7 @@ function showSubSettings(sub) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-settings-' + sub).classList.add('active');
     if (sub === 'api') loadSettingsUI();
-    if (sub === 'data') updateCount();
+    if (sub === 'data') { updateCount(); updateGistStatus(); }
     window.scrollTo(0, 0);
 }
 
@@ -1807,10 +1839,140 @@ function getThoughts() {
     return JSON.parse(localStorage.getItem('thoughts') || '[]');
 }
 
+// 统一写入：localStorage + IndexedDB备份 + 自动Gist同步
+let _gistSyncTimer = null;
+function saveThoughts(thoughts) {
+    localStorage.setItem('thoughts', JSON.stringify(thoughts));
+    writeBackupDB(thoughts);
+    if (localStorage.getItem('gh_token')) {
+        clearTimeout(_gistSyncTimer);
+        _gistSyncTimer = setTimeout(() => syncToGist(true), 5000);
+    }
+}
+
 function saveThought(t) {
     const all = getThoughts();
     all.unshift(t);
-    localStorage.setItem('thoughts', JSON.stringify(all));
+    saveThoughts(all);
+}
+
+// ── 本地 IndexedDB 双备份 ──
+let _backupDB = null;
+async function openBackupDB() {
+    if (_backupDB) return _backupDB;
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open('shannian-backup', 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore('data');
+        req.onsuccess = e => { _backupDB = e.target.result; resolve(_backupDB); };
+        req.onerror = () => reject(req.error);
+    });
+}
+async function writeBackupDB(thoughts) {
+    try {
+        const db = await openBackupDB();
+        await new Promise((res, rej) => {
+            const tx = db.transaction('data', 'readwrite');
+            tx.objectStore('data').put(JSON.stringify(thoughts), 'all');
+            tx.oncomplete = res; tx.onerror = rej;
+        });
+    } catch(_) {}
+}
+async function readBackupDB() {
+    try {
+        const db = await openBackupDB();
+        return await new Promise(resolve => {
+            const tx = db.transaction('data', 'readonly');
+            const req = tx.objectStore('data').get('all');
+            req.onsuccess = () => { try { resolve(JSON.parse(req.result||'null')); } catch(_){ resolve(null); } };
+            req.onerror = () => resolve(null);
+        });
+    } catch(_) { return null; }
+}
+
+// ── GitHub Gist 云端备份 ──
+async function syncToGist(silent = false) {
+    const token = localStorage.getItem('gh_token');
+    if (!token) { if (!silent) toast('请先填入 GitHub Token'); return; }
+    const content = JSON.stringify(getThoughts(), null, 2);
+    const gistId = localStorage.getItem('gh_gist_id');
+    try {
+        let res;
+        if (gistId) {
+            res = await fetch(`https://api.github.com/gists/${gistId}`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files: { 'shannian_backup.json': { content } } })
+            });
+        } else {
+            res = await fetch('https://api.github.com/gists', {
+                method: 'POST',
+                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    description: '闪念备份 · 自动生成', public: false,
+                    files: { 'shannian_backup.json': { content } }
+                })
+            });
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (!gistId) localStorage.setItem('gh_gist_id', data.id);
+        if (!silent) { toast('已同步到云端 ✓'); updateGistStatus(); }
+    } catch(e) {
+        console.error('Gist sync error', e);
+        if (!silent) toast('同步失败：' + e.message);
+    }
+}
+
+async function restoreFromGist() {
+    const token = localStorage.getItem('gh_token');
+    const gistId = localStorage.getItem('gh_gist_id');
+    if (!token) { toast('请先填入 GitHub Token'); return; }
+    if (!gistId) { toast('还没有云端备份记录'); return; }
+    try {
+        const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+            headers: { 'Authorization': `token ${token}` }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const raw = data.files?.['shannian_backup.json']?.content;
+        if (!raw) { toast('云端备份是空的'); return; }
+        const thoughts = JSON.parse(raw);
+        if (!Array.isArray(thoughts)) throw new Error('格式不对');
+        localStorage.setItem('thoughts', JSON.stringify(thoughts));
+        await writeBackupDB(thoughts);
+        renderArchive(); renderClusters();
+        toast(`从云端恢复了 ${thoughts.length} 条念头 ✓`);
+        updateGistStatus();
+    } catch(e) { toast('恢复失败：' + e.message); }
+}
+
+function saveGhToken() {
+    const val = (document.getElementById('gh-token-input').value || '').trim();
+    if (!val) {
+        localStorage.removeItem('gh_token');
+        localStorage.removeItem('gh_gist_id');
+        toast('已清除 Token');
+    } else {
+        localStorage.setItem('gh_token', val);
+        document.getElementById('gh-token-input').value = '';
+        toast('Token 已保存，首次同步中…');
+        syncToGist(false);
+    }
+    updateGistStatus();
+}
+
+function updateGistStatus() {
+    const el = document.getElementById('gist-status');
+    if (!el) return;
+    const token = localStorage.getItem('gh_token');
+    const gistId = localStorage.getItem('gh_gist_id');
+    if (!token) {
+        el.innerHTML = '<span style="color:var(--muted)">未配置</span>';
+    } else if (gistId) {
+        el.innerHTML = `<span style="color:var(--positive)">✓ 已连接，每次保存自动同步</span>`;
+    } else {
+        el.innerHTML = `<span style="color:var(--muted)">Token 已填，首次同步后激活</span>`;
+    }
 }
 
 // ── Archive ──
@@ -1930,7 +2092,7 @@ async function saveEdit() {
         // keep old tags if reclassify fails
     }
 
-    localStorage.setItem('thoughts', JSON.stringify(thoughts));
+    saveThoughts(thoughts);
     editingId = null;
     renderArchive();
     toast('已更新');
@@ -1945,7 +2107,7 @@ async function deleteThought(id) {
         }
     }
     const thoughts = getThoughts().filter(x => x.id !== id);
-    localStorage.setItem('thoughts', JSON.stringify(thoughts));
+    saveThoughts(thoughts);
     renderArchive();
     toast('已删除');
 }
@@ -2636,7 +2798,27 @@ function updateCount() {
     if (el) el.textContent = `共 ${n} 条念头`;
 }
 
-// ── Export ──
+// ── Export / Import ──
+async function importData(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+        const text = await file.text();
+        const incoming = JSON.parse(text);
+        if (!Array.isArray(incoming)) throw new Error('格式不对');
+        const existing = getThoughts();
+        const existingIds = new Set(existing.map(t => t.id));
+        const merged = [...existing, ...incoming.filter(t => !existingIds.has(t.id))];
+        merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        saveThoughts(merged);
+        renderArchive(); renderClusters(); updateCount();
+        toast(`已导入 ${incoming.length} 条，合并后共 ${merged.length} 条`);
+    } catch(err) {
+        toast('导入失败：' + err.message);
+    }
+    e.target.value = '';
+}
+
 function exportData() {
     const thoughts = getThoughts();
     const json = JSON.stringify(thoughts, null, 2);
